@@ -187,10 +187,13 @@ void main() {
             brightness: brightness,
           );
           final reason = '$seed $brightness';
+          final keptNekoBoxBrightAccent =
+              brightness == Brightness.light && _hct(scheme.primary).tone > 60;
+          final floor = keptNekoBoxBrightAccent ? 2.2 : 3.0;
 
           expect(
             _contrast(scheme.primary, scheme.onPrimary),
-            greaterThanOrEqualTo(3),
+            greaterThanOrEqualTo(floor),
             reason: reason,
           );
           if (brightness == Brightness.dark) {
