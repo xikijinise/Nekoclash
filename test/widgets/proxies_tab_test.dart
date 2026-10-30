@@ -49,6 +49,11 @@ void main() {
       ],
     );
     globalState.container = globalContainer;
+    // The chip tabs are the wide layout's; a phone gets NekoBox's tab strip.
+    globalContainer.read(viewSizeProvider.notifier).value = const Size(
+      800,
+      600,
+    );
     currentProfileSubscription = globalContainer.listen(
       currentProfileProvider,
       (_, _) {},
@@ -101,6 +106,26 @@ void main() {
     expect(key.currentState?.currentGroup?.name, 'C');
     expect(isTabSelected(tester, 'C'), isTrue);
     expect(isTabSelected(tester, 'B'), isFalse);
+  });
+
+  testWidgets('on a phone the tapped tab of the strip becomes the current '
+      'group', (tester) async {
+    globalContainer.read(viewSizeProvider.notifier).value = const Size(
+      400,
+      800,
+    );
+    final key = await pumpTabView(tester);
+
+    expect(find.byType(GroupTabs), findsNothing);
+    final strip = find.byType(TabBar);
+    expect(tester.widget<TabBar>(strip).controller!.index, 0);
+
+    await tester.tap(find.descendant(of: strip, matching: find.text('C')));
+    await tester.pumpAndSettle();
+
+    expect(key.currentState?.currentGroup?.name, 'C');
+    expect(globalContainer.read(currentProfileProvider)?.currentGroupName, 'C');
+    expect(tester.widget<TabBar>(strip).controller!.index, 1);
   });
 
   testWidgets('keeps the outgoing tabs usable while the empty state enters', (

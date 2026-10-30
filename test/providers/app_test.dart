@@ -177,15 +177,15 @@ void main() {
   });
 
   group('CurrentPageLabel provider', () {
-    test('default is dashboard', () {
-      expect(container.read(currentPageLabelProvider), PageLabel.dashboard);
+    test('default is proxies', () {
+      expect(container.read(currentPageLabelProvider), PageLabel.proxies);
     });
 
     test('toPage changes page', () {
       container
           .read(currentPageLabelProvider.notifier)
-          .toPage(PageLabel.proxies);
-      expect(container.read(currentPageLabelProvider), PageLabel.proxies);
+          .toPage(PageLabel.profiles);
+      expect(container.read(currentPageLabelProvider), PageLabel.profiles);
     });
 
     test('toProfiles changes page', () {

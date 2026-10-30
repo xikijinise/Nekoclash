@@ -24,6 +24,22 @@ import '../helpers/test_app.dart';
 
 Finder _glyph(Glyph glyph) => find.byGlyph(glyph);
 
+final _drawerShell = find.byWidgetPredicate(
+  (widget) => widget is Scaffold && widget.drawer != null,
+);
+
+Finder _drawerItem(Glyph glyph) =>
+    find.descendant(of: find.byType(Drawer), matching: _glyph(glyph));
+
+Future<void> _tapInDrawer(WidgetTester tester, Glyph glyph) async {
+  tester.state<ScaffoldState>(_drawerShell).openDrawer();
+  await tester.pumpAndSettle();
+  await tester.tap(_drawerItem(glyph));
+}
+
+bool _drawerSelects(WidgetTester tester, Glyph glyph) =>
+    tester.widget<GlyphIcon>(_drawerItem(glyph)).fill == 1;
+
 void main() {
   setUp(() {
     navigationPort = navigation;
@@ -117,6 +133,9 @@ void main() {
       addTearDown(container.dispose);
       globalState.container = container;
       container.read(viewSizeProvider.notifier).value = const Size(1200, 800);
+      container
+          .read(currentPageLabelProvider.notifier)
+          .toPage(PageLabel.dashboard);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -171,7 +190,7 @@ void main() {
 
       expect(find.text('count: 1'), findsOneWidget);
       expect(find.byType(NavigationSidebar), findsOneWidget);
-      expect(find.byType(FloatingNavigationBar), findsOneWidget);
+      expect(_drawerShell, findsOneWidget);
       await tester.pump(const Duration(milliseconds: 150));
       expect(tester.takeException(), isNull);
 
@@ -185,7 +204,7 @@ void main() {
 
       await tester.pump(const Duration(milliseconds: 301));
       expect(find.byType(NavigationSidebar), findsNothing);
-      expect(find.byType(FloatingNavigationBar), findsOneWidget);
+      expect(_drawerShell, findsOneWidget);
 
       tester.view.physicalSize = const Size(1200, 800);
       container.read(viewSizeProvider.notifier).value = const Size(1200, 800);
@@ -193,11 +212,11 @@ void main() {
 
       expect(find.text('count: 1'), findsOneWidget);
       expect(find.byType(NavigationSidebar), findsOneWidget);
-      expect(find.byType(FloatingNavigationBar), findsOneWidget);
+      expect(_drawerShell, findsNothing);
 
       await tester.pump(const Duration(milliseconds: 301));
       expect(find.byType(NavigationSidebar), findsOneWidget);
-      expect(find.byType(FloatingNavigationBar), findsNothing);
+      expect(_drawerShell, findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -382,7 +401,7 @@ void main() {
       );
       await tester.pump();
       expect(find.byType(ToolsView), findsOneWidget);
-      expect(find.byType(FloatingNavigationBar), findsOneWidget);
+      expect(_drawerShell, findsOneWidget);
 
       for (var width = 520.0; width <= 1200; width += 20) {
         tester.view.physicalSize = Size(width, 800);
@@ -612,7 +631,7 @@ void main() {
     },
   );
 
-  testWidgets('mobile bottom navigation keeps page and highlight consistent', (
+  testWidgets('the mobile drawer keeps page and highlight consistent', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(500, 800);
@@ -620,28 +639,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    Widget page(String label) {
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Text('page:$label'),
-          Positioned(
-            left: 200,
-            bottom: 0,
-            child: Builder(
-              builder: (context) => Padding(
-                padding: EdgeInsets.only(bottom: BottomInsetScope.of(context)),
-                child: IconButton(
-                  key: const ValueKey('content-action'),
-                  onPressed: () {},
-                  icon: const Icon(Icons.more_horiz),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
+    Widget page(String label) => Text('page:$label');
 
     final container = ProviderContainer(
       overrides: [
@@ -684,58 +682,23 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.byType(FloatingNavigationBar), findsOneWidget);
+    expect(find.byType(Drawer), findsNothing);
 
-    FloatingNavigationBar navBar() => tester.widget<FloatingNavigationBar>(
-      find.byType(FloatingNavigationBar),
-    );
-
-    await tester.tap(_glyph(AppGlyphs.tools));
+    await _tapInDrawer(tester, AppGlyphs.tools);
     await tester.pumpAndSettle();
+    expect(find.byType(Drawer), findsNothing);
     expect(container.read(currentPageLabelProvider), PageLabel.tools);
-    expect(navBar().selectedIndex, 2);
     expect(find.text('page:tools'), findsOneWidget);
 
-    bool focusInNav() {
-      final context = FocusManager.instance.primaryFocus?.context;
-      return context?.findAncestorWidgetOfExactType<FloatingNavigationBar>() !=
-          null;
-    }
-
-    for (var i = 0; i < 20 && !focusInNav(); i++) {
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.pump();
-    }
-    expect(focusInNav(), isTrue);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    await tester.pump();
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await _tapInDrawer(tester, AppGlyphs.profiles);
     await tester.pumpAndSettle();
     expect(container.read(currentPageLabelProvider), PageLabel.profiles);
-    expect(navBar().selectedIndex, 1);
     expect(find.text('page:profiles'), findsOneWidget);
 
-    await tester.tap(_glyph(AppGlyphs.tools));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(_glyph(AppGlyphs.proxies));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(_glyph(AppGlyphs.profiles));
+    tester.state<ScaffoldState>(_drawerShell).openDrawer();
     await tester.pumpAndSettle();
-    expect(container.read(currentPageLabelProvider), PageLabel.profiles);
-    expect(navBar().selectedIndex, 1);
-    expect(find.text('page:profiles'), findsOneWidget);
-    expect(focusInNav(), isTrue);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-    await tester.pump();
-    final focusedIconButton = FocusManager.instance.primaryFocus?.context
-        ?.findAncestorWidgetOfExactType<IconButton>();
-    expect(
-      focusedIconButton?.key,
-      const ValueKey('content-action'),
-      reason: 'up from the bottom bar must enter the current page',
-    );
+    expect(_drawerSelects(tester, AppGlyphs.profiles), isTrue);
+    expect(_drawerSelects(tester, AppGlyphs.tools), isFalse);
     expect(tester.takeException(), isNull);
   });
 
@@ -779,33 +742,31 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.tap(_glyph(AppGlyphs.proxies));
+    await _tapInDrawer(tester, AppGlyphs.proxies);
+    await tester.pumpAndSettle();
+    tester.state<ScaffoldState>(_drawerShell).openDrawer();
     await tester.pumpAndSettle();
 
-    int selectedIndex() => tester
-        .widget<FloatingNavigationBar>(find.byType(FloatingNavigationBar))
-        .selectedIndex;
-
-    expect(selectedIndex(), 1);
+    expect(_drawerSelects(tester, AppGlyphs.proxies), isTrue);
     expect(find.text('page:proxies active:true'), findsOneWidget);
 
     items.set([dashboard, profiles]);
     await tester.pumpAndSettle();
-    expect(selectedIndex(), 0);
+    expect(_drawerSelects(tester, AppGlyphs.dashboard), isTrue);
     expect(find.text('page:dashboard active:true'), findsOneWidget);
     expect(find.textContaining('page:profiles'), findsNothing);
     expect(container.read(currentPageLabelProvider), PageLabel.proxies);
 
     items.set([dashboard, proxies, profiles]);
     await tester.pumpAndSettle();
-    expect(selectedIndex(), 1);
+    expect(_drawerSelects(tester, AppGlyphs.proxies), isTrue);
+    expect(_drawerSelects(tester, AppGlyphs.dashboard), isFalse);
     expect(find.text('page:proxies active:true'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('a non-floating bottom bar leaves the page no bottom inset', (
-    tester,
-  ) async {
+  testWidgets('the drawer leaves the page no bottom inset either way the '
+      'floating bar setting is set', (tester) async {
     tester.view.physicalSize = const Size(500, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -853,25 +814,19 @@ void main() {
     );
     await tester.pump();
     expect(find.byType(FloatingNavigationBar), findsNothing);
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
     expect(find.text('page:dashboard inset:0.0'), findsOneWidget);
 
-    await tester.tap(_glyph(AppGlyphs.tools));
+    await _tapInDrawer(tester, AppGlyphs.tools);
     await tester.pumpAndSettle();
     expect(container.read(currentPageLabelProvider), PageLabel.tools);
-    expect(
-      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-      1,
-    );
 
     container
         .read(appSettingProvider.notifier)
         .update((state) => state.copyWith(floatingNavigationBar: true));
     await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsNothing);
-    expect(find.byType(FloatingNavigationBar), findsOneWidget);
-    expect(find.textContaining('page:tools inset:'), findsOneWidget);
-    expect(find.text('page:tools inset:0.0'), findsNothing);
+    expect(find.byType(FloatingNavigationBar), findsNothing);
+    expect(find.text('page:tools inset:0.0'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -984,20 +939,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(_glyph(AppGlyphs.tools));
+    await _tapInDrawer(tester, AppGlyphs.tools);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('page:dashboard'), findsOneWidget);
+    expect(find.text('page:proxies'), findsOneWidget);
     expect(find.text('page:tools'), findsOneWidget);
 
     await tester.pumpAndSettle();
-    expect(find.text('page:dashboard'), findsNothing);
+    expect(find.text('page:proxies'), findsNothing);
     expect(find.text('page:tools'), findsOneWidget);
 
-    await tester.tap(_glyph(AppGlyphs.dashboard));
+    await _tapInDrawer(tester, AppGlyphs.dashboard);
     await tester.pumpAndSettle();
     expect(find.text('page:dashboard'), findsOneWidget);
-    expect(inits.toSet(), {PageLabel.dashboard, PageLabel.tools});
+    expect(inits.toSet(), {
+      PageLabel.proxies,
+      PageLabel.tools,
+      PageLabel.dashboard,
+    });
     expect(tester.takeException(), isNull);
   });
 
@@ -1056,10 +1015,10 @@ void main() {
     await tester.enterText(find.byType(TextField), 'needle');
     expect(query, 'needle');
 
-    await tester.tap(_glyph(AppGlyphs.tools));
+    await _tapInDrawer(tester, AppGlyphs.tools);
     await tester.pumpAndSettle();
     expect(query, isEmpty);
-    await tester.tap(_glyph(AppGlyphs.dashboard));
+    await _tapInDrawer(tester, AppGlyphs.dashboard);
     await tester.pumpAndSettle();
 
     expect(find.byType(TextField), findsNothing);

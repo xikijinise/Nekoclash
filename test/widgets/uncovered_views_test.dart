@@ -153,15 +153,15 @@ void main() {
     await tester.pump();
     final l10n = AppLocalizations.current;
 
-    expect(find.text(l10n.iconStyle), findsOneWidget);
+    expect(find.text(l10n.iconStyle), findsNothing);
 
     await tester.tap(find.text(l10n.style));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(ProxiesType.tab.label));
+    await tester.tap(find.text(ProxiesType.list.label));
     await tester.pumpAndSettle();
 
-    expect(container.read(proxiesStyleSettingProvider).type, ProxiesType.tab);
-    expect(find.text(l10n.iconStyle), findsNothing);
+    expect(container.read(proxiesStyleSettingProvider).type, ProxiesType.list);
+    expect(find.text(l10n.iconStyle), findsOneWidget);
     expect(tester.takeException(), null);
   });
 

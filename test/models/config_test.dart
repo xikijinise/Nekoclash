@@ -604,7 +604,7 @@ void main() {
   group('ProxiesStyleProps JSON round-trip', () {
     test('default values', () {
       const props = ProxiesStyleProps();
-      expect(props.type, ProxiesType.list);
+      expect(props.type, ProxiesType.tab);
       expect(props.sortType, ProxiesSortType.none);
       expect(props.layout, ProxiesLayout.standard);
     });

@@ -193,7 +193,7 @@ void main() {
   });
 
   testWidgets('revealed proxy stays below the pinned header', (tester) async {
-    await pumpListLayout(tester, size: const Size(600, 400), proxyCount: 30);
+    await pumpListLayout(tester, size: const Size(700, 400), proxyCount: 30);
 
     final proxyFinder = find.byKey(const ValueKey('Selector.Proxy 3')).first;
     final targetContext = tester.element(proxyFinder);

@@ -98,6 +98,58 @@ Future<ProviderContainer> _pumpHome(
   return container;
 }
 
+const _pageKey = ValueKey('page');
+
+Future<ValueNotifier<int>> _pumpDock(
+  WidgetTester tester, {
+  int selected = 0,
+}) async {
+  tester.view.physicalSize = _mobileSize;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  final selection = ValueNotifier(selected);
+  addTearDown(selection.dispose);
+  await tester.pumpWidget(
+    TestApp(
+      child: Scaffold(
+        body: Stack(
+          children: [
+            const Positioned.fill(
+              child: RepaintBoundary(key: _pageKey, child: Placeholder()),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: ValueListenableBuilder(
+                valueListenable: selection,
+                builder: (_, index, _) => NavigationDock(
+                  destinations: const [
+                    NavigationDockDestination(
+                      glyph: AppGlyphs.dashboard,
+                      label: 'dashboard',
+                    ),
+                    NavigationDockDestination(
+                      glyph: AppGlyphs.profiles,
+                      label: 'profiles',
+                    ),
+                    NavigationDockDestination(
+                      glyph: AppGlyphs.tools,
+                      label: 'tools',
+                    ),
+                  ],
+                  selectedIndex: index,
+                  onSelected: (index) => selection.value = index,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return selection;
+}
+
 // A press only paints, so its swell shows in the paint transform.
 Rect _painted(WidgetTester tester, RenderObject box, Rect resting) {
   Matrix4? transform;
@@ -123,53 +175,32 @@ void main() {
     addTearDown(() => navigationPort = null);
   });
 
-  testWidgets('the dock stays centred alone on every page, the dashboard '
-      'included', (tester) async {
-    final container = await _pumpHome(tester);
-
-    final bar = tester.getRect(find.byType(FloatingNavigationBar));
-    expect(find.byType(FloatingActionButton), findsNothing);
-    expect(bar.center.dx, _mobileSize.width / 2);
-
-    await tester.drag(
-      find.byType(FloatingNavigationBar),
-      Offset(bar.width * 0.7, 0),
-      warnIfMissed: false,
-    );
-    await tester.pumpAndSettle();
-    expect(container.read(currentPageLabelProvider), PageLabel.tools);
-    final alone = tester.getRect(find.byType(FloatingNavigationBar));
-    expect(alone.center.dx, _mobileSize.width / 2);
-    expect(alone.width, lessThan(_mobileSize.width - 40));
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets('a tap that just misses the bar still reaches it', (
     tester,
   ) async {
-    final container = await _pumpHome(tester);
+    final selection = await _pumpDock(tester);
     final bar = tester.getRect(find.byType(FloatingNavigationBar));
     final extent = (bar.width - 8) / 3;
     final tools = bar.left + 4 + extent * 2.5;
 
     await tester.tapAt(Offset(tools, bar.bottom + 12));
     await tester.pumpAndSettle();
-    expect(container.read(currentPageLabelProvider), PageLabel.dashboard);
+    expect(selection.value, 0);
 
     await tester.tapAt(Offset(tools, bar.bottom + 6));
     await tester.pumpAndSettle();
-    expect(container.read(currentPageLabelProvider), PageLabel.tools);
+    expect(selection.value, 2);
 
     final alone = tester.getRect(find.byType(FloatingNavigationBar));
     await tester.tapAt(Offset(alone.left - 6, alone.top - 6));
     await tester.pumpAndSettle();
-    expect(container.read(currentPageLabelProvider), PageLabel.dashboard);
+    expect(selection.value, 0);
   });
 
   testWidgets('the lens keeps up with a finger that never pauses', (
     tester,
   ) async {
-    await _pumpHome(tester);
+    await _pumpDock(tester);
     final bar = tester.getRect(find.byType(FloatingNavigationBar));
     final extent = (bar.width - 8) / 3;
     var finger = Offset(bar.left + 4 + extent / 2, bar.center.dy);
@@ -189,14 +220,9 @@ void main() {
   testWidgets('the lens moving repaints the dock and not the page', (
     tester,
   ) async {
-    await _pumpHome(tester);
+    await _pumpDock(tester);
     final page = tester.renderObject<RenderRepaintBoundary>(
-      find
-          .ancestor(
-            of: find.byType(HomePage),
-            matching: find.byType(RepaintBoundary),
-          )
-          .first,
+      find.byKey(_pageKey),
     );
     final bar = tester.getRect(find.byType(FloatingNavigationBar));
     final extent = (bar.width - 8) / 3;
@@ -216,7 +242,7 @@ void main() {
   });
 
   testWidgets('a flick carries the lens on to the next item', (tester) async {
-    final container = await _pumpHome(tester);
+    final selection = await _pumpDock(tester);
     final bar = tester.getRect(find.byType(FloatingNavigationBar));
     final extent = (bar.width - 8) / 3;
     final start = Offset(bar.left + 4 + extent / 2, bar.center.dy);
@@ -227,16 +253,16 @@ void main() {
     }
 
     await drag(const Duration(seconds: 1));
-    expect(container.read(currentPageLabelProvider), PageLabel.dashboard);
+    expect(selection.value, 0);
 
     await drag(const Duration(milliseconds: 50));
-    expect(container.read(currentPageLabelProvider), PageLabel.profiles);
+    expect(selection.value, 1);
   });
 
   testWidgets('a press lifts the lens past the bar until it is let go', (
     tester,
   ) async {
-    await _pumpHome(tester);
+    await _pumpDock(tester);
     final bar = tester.getRect(find.byType(FloatingNavigationBar));
     final resting = tester.getRect(_lens);
     expect(resting.height, bar.height - 8);
@@ -255,7 +281,7 @@ void main() {
   testWidgets('a quick tap lifts the lens all the way before it drops', (
     tester,
   ) async {
-    await _pumpHome(tester);
+    await _pumpDock(tester);
     final resting = tester.getRect(_lens);
     final hold = await tester.startGesture(resting.center);
     await tester.pumpAndSettle();
@@ -329,7 +355,7 @@ void main() {
   testWidgets('the bar swells under a pointer and stretches past its end', (
     tester,
   ) async {
-    await _pumpHome(tester);
+    await _pumpDock(tester);
     final bar = find.byType(FloatingNavigationBar);
     final resting = tester.getRect(bar);
     Rect painted() => _painted(tester, tester.renderObject(bar), resting);
@@ -366,12 +392,7 @@ void main() {
   testWidgets(
     'a hovering pointer highlights and draws only the item under it',
     (tester) async {
-      await _pumpHome(
-        tester,
-        overrides: [
-          currentPageLabelProvider.overrideWithBuild((_, _) => PageLabel.tools),
-        ],
-      );
+      await _pumpDock(tester, selected: 2);
       final bar = find.byType(FloatingNavigationBar);
       final tools = find
           .descendant(of: bar, matching: find.byType(GlyphIcon))
@@ -431,7 +452,7 @@ void main() {
   );
 
   testWidgets('a tap leaves no highlight behind', (tester) async {
-    await _pumpHome(tester);
+    await _pumpDock(tester);
     final bar = find.byType(FloatingNavigationBar);
     final tools = find
         .descendant(of: bar, matching: find.byType(GlyphIcon))

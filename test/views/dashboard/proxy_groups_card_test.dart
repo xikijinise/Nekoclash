@@ -310,7 +310,12 @@ void main() {
   });
 
   for (final (type, desktop, searching, mobile) in [
-    (ProxiesType.list, ['Close', 'Search'], ['Clear search'], ['Close']),
+    (
+      ProxiesType.list,
+      ['Close', 'Search'],
+      ['Clear search'],
+      ['Delay test', 'Close'],
+    ),
     (
       ProxiesType.tab,
       ['Search', 'Delay test', 'Close'],
