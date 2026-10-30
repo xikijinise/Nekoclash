@@ -293,8 +293,8 @@ in `CHANGELOG.md`, and are never regenerated.
 skipped and moves on instead of reporting drift that does not exist. Checking mere tag existence is what made every such
 branch fail on an unrelated release.
 
-Prerelease tags (`v0.8.96-pre.N`) skip the release commit, and CI renders their notes with `build --unreleased` for the
-Telegram post. They publish no GitHub release, so the update dialog never sees them. `build --unreleased` reads the
+Prerelease tags (`v0.8.96-pre.N`) skip the release commit, and CI renders their notes with `build --unreleased`.
+They publish no GitHub release, so the update dialog never sees them. `build --unreleased` reads the
 version from `pubspec.yaml` rather than the tag, so the patch has to be bumped before the first `-pre.N` of a cycle:
 while `v<pubspec version>` is still tagged it refuses to collect anything and the release job fails.
 
@@ -358,8 +358,11 @@ and the gomobile AAR built for one ABI), `rust` (both crates), and a
 Windows runner for the helper's `windows-service` feature. On branch pushes a
 `desktop` job also compiles a debug build per desktop platform; a tag skips it,
 since its release matrix compiles the same native code. Release builds run only
-in the public repository and start alongside the checks; `upload` publishes
-only once every build and every check job passes.
+in the public repository and start alongside the checks, and build the Android
+APKs alone; `upload` publishes only once every build and every check job
+passes. A manual `workflow_dispatch` run builds the APKs as artifacts without
+publishing, debug-signed when the `KEYSTORE` secret is unset; a tag fails
+without it.
 
 `bash tool/check_plugins.sh` is that plugin gate, and CI runs the same script.
 It discovers every `plugins/*/pubspec.yaml`, analyzes each package, and runs
