@@ -28,7 +28,7 @@
 ## 安装
 
 在 [Releases](https://github.com/xikijinise/NekoClash/releases/latest) 下载 `NekoClash-版本号-android-arm64-v8a.apk`，适用于绝大多数 Android 手机，
-可以和 FlClash 同时安装。也可以访问 [NekoClash 网站](https://xikijinise.github.io/NekoClash/)。
+可以和 FlClash 同时安装。也可以访问 [NekoClash 网站](https://xikijinise.github.io/Nekoclash/)。
 
 签名证书 SHA-256：`0d50e1fe2df180097d95df86fce31d378d6b3a8914393c2930675b4767eca247`
 

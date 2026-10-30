@@ -300,7 +300,7 @@ while `v<pubspec version>` is still tagged it refuses to collect anything and th
 
 ### Website
 
-`site/` is the GitHub Pages site at https://xikijinise.github.io/NekoClash/: a static bilingual page, `index.html` and
+`site/` is the GitHub Pages site at https://xikijinise.github.io/Nekoclash/: a static bilingual page, `index.html` and
 `style.css`, that works as is for local previews.
 
 ```bash

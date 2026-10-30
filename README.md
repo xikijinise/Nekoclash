@@ -34,7 +34,7 @@ The core (mihomo), profiles, rules, overrides, TUN, per-app proxy and backups al
 
 Download `NekoClash-<version>-android-arm64-v8a.apk` from [Releases](https://github.com/xikijinise/NekoClash/releases/latest);
 it suits most Android phones and installs beside FlClash. There is also a
-[NekoClash website](https://xikijinise.github.io/NekoClash/).
+[NekoClash website](https://xikijinise.github.io/Nekoclash/).
 
 Signing certificate SHA-256: `0d50e1fe2df180097d95df86fce31d378d6b3a8914393c2930675b4767eca247`
 
