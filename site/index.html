@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NekoClash</title>
+  <meta name="description" content="NekoClash：FlClash 的 Android 分支，内核与功能保持 FlClash（mihomo），界面换成 NekoBox 的样子。An Android fork of FlClash with NekoBox's look.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#fb7299">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="NekoClash">
+  <meta property="og:description" content="FlClash 的内核与功能，NekoBox 的样子。FlClash's core and features, in NekoBox's look.">
+  <meta property="og:image" content="icon.png">
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var lang = null;
+      try { lang = localStorage.getItem('nekoclash.lang'); } catch (e) {}
+      if (lang !== 'zh' && lang !== 'en') {
+        var prefs = navigator.languages || [navigator.language || ''];
+        lang = prefs.some(function (l) { return /^zh/i.test(l); }) ? 'zh' : 'en';
+      }
+      root.dataset.lang = lang;
+      root.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    })();
+  </script>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></symbol>
+      <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></symbol>
+      <symbol id="i-plane" viewBox="0 0 24 24"><path d="M17.68,9l-1.59,7L12.7,14.89l5-5.93M10,10.08l-3.57,3L5,12.55l5-2.47M21.25,2.28L0,12.8l6.83,2.57,9.76-8.21L9.26,15.89l8.29,2.67,3.7-16.27h0ZM9.45 17.56 L9.46 22 L12.09 18.41 L9.45 17.56 Z"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M4,14h4v-4L4,10v4zM4,19h4v-4L4,15v4zM4,9h4L8,5L4,5v4zM9,14h12v-4L9,10v4zM9,19h12v-4L9,15v4zM9,5v4h12L21,5L9,5z"/></symbol>
+      <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12,3c-4.97,0 -9,4.03 -9,9s4.03,9 9,9c0.83,0 1.5,-0.67 1.5,-1.5 0,-0.39 -0.15,-0.74 -0.39,-1.01 -0.23,-0.26 -0.38,-0.61 -0.38,-0.99 0,-0.83 0.67,-1.5 1.5,-1.5L16,16c2.76,0 5,-2.24 5,-5 0,-4.42 -4.03,-8 -9,-8zM6.5,12c-0.83,0 -1.5,-0.67 -1.5,-1.5S5.67,9 6.5,9 8,9.67 8,10.5 7.33,12 6.5,12zM9.5,8C8.67,8 8,7.33 8,6.5S8.67,5 9.5,5s1.5,0.67 1.5,1.5S10.33,8 9.5,8zM14.5,8c-0.83,0 -1.5,-0.67 -1.5,-1.5S13.67,5 14.5,5s1.5,0.67 1.5,1.5S15.33,8 14.5,8zM17.5,12c-0.83,0 -1.5,-0.67 -1.5,-1.5S16.67,9 17.5,9s1.5,0.67 1.5,1.5 -0.67,1.5 -1.5,1.5z"/></symbol>
+      <symbol id="i-apps" viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></symbol>
+      <symbol id="i-chip" viewBox="0 0 24 24"><path d="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top"><img src="icon.png" alt="">NekoClash</a>
+      <nav class="nav-links">
+        <a href="#features"><span lang="zh">特点</span><span lang="en">Features</span></a>
+        <a href="#download"><span lang="zh">下载</span><span lang="en">Download</span></a>
+        <a href="#automation"><span lang="zh">自动化</span><span lang="en">Automation</span></a>
+        <a href="https://github.com/xikijinise/NekoClash">GitHub</a>
+      </nav>
+      <button class="tool lang" type="button" id="lang-toggle" aria-label="Switch language">
+        <span lang="zh">English</span><span lang="en">中文</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+    <div class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <img class="hero-icon" src="icon.png" alt="NekoClash">
+          <h1>Neko<span class="accent">Clash</span></h1>
+          <p class="tagline">
+            <span lang="zh">FlClash 的内核与功能，NekoBox 的样子。一个只为 Android 打造的代理客户端。</span>
+            <span lang="en">FlClash's core and features, in NekoBox's look. A proxy client made for Android only.</span>
+          </p>
+          <div class="actions">
+            <a class="btn btn-primary" href="https://github.com/xikijinise/NekoClash/releases/latest"><span lang="zh">下载 APK</span><span lang="en">Download APK</span></a>
+            <a class="btn btn-ghost" href="https://github.com/xikijinise/NekoClash"><span lang="zh">查看源码</span><span lang="en">View source</span></a>
+          </div>
+          <p class="note">
+            <span lang="zh">基于 FlClash · mihomo 内核 · GPL-3.0 开源 · 个人维护的非官方分支</span>
+            <span lang="en">Based on FlClash · mihomo core · GPL-3.0 · an unofficial, personal fork</span>
+          </p>
+        </div>
+
+        <div class="phones" aria-hidden="true">
+          <div class="phone">
+            <div class="screen">
+              <div class="app-top">
+                <div class="status"><span>12:00</span><span>VPN ▾ ▮</span></div>
+                <div class="bar">
+                  <svg><use href="#i-menu"/></svg>
+                  <span lang="zh">代理</span><span lang="en">Proxies</span>
+                  <span class="spacer"></span>
+                  <svg><use href="#i-search"/></svg>
+                  <svg><use href="#i-bolt"/></svg>
+                  <svg><use href="#i-more"/></svg>
+                </div>
+                <div class="tabs"><span class="on">PROXY</span><span>Auto</span><span>Streaming</span></div>
+              </div>
+              <div class="nodes">
+                <div class="node on"><b><span lang="zh">香港 01</span><span lang="en">Hong Kong 01</span></b><small>VLESS<em>86 ms</em></small></div>
+                <div class="node"><b><span lang="zh">日本 02</span><span lang="en">Japan 02</span></b><small>Hysteria2<em>112 ms</em></small></div>
+                <div class="node"><b><span lang="zh">新加坡 03</span><span lang="en">Singapore 03</span></b><small>Trojan<em>98 ms</em></small></div>
+                <div class="node"><b><span lang="zh">美国 04</span><span lang="en">United States 04</span></b><small>VMess<em>171 ms</em></small></div>
+                <div class="node"><b>DIRECT</b><small>Direct<em></em></small></div>
+              </div>
+              <div class="stats">
+                <span class="fab"><svg><use href="#i-plane"/></svg></span>
+                ▲&nbsp;&nbsp;16 KB/s<br>▼&nbsp;&nbsp;166 KB/s
+                <strong><span lang="zh">连接成功：延迟 164 ms</span><span lang="en">Connected: 164 ms delay</span></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section id="features">
+      <div class="wrap">
+        <p class="eyebrow"><span lang="zh">特点</span><span lang="en">Features</span></p>
+        <h2><span lang="zh">熟悉的 NekoBox，可靠的 FlClash</span><span lang="en">NekoBox on the outside, FlClash inside</span></h2>
+        <p class="lead">
+          <span lang="zh">界面照着 NekoBox 重新排布，订阅、规则、覆写、TUN 和分应用代理这些功能全部来自 FlClash，没有改动。</span>
+          <span lang="en">The screens follow NekoBox; profiles, rules, overrides, TUN and per-app proxy all come from FlClash unchanged.</span>
+        </p>
+        <div class="grid">
+          <article class="card">
+            <div class="ico"><svg><use href="#i-menu"/></svg></div>
+            <h3><span lang="zh">侧滑抽屉</span><span lang="en">Side drawer</span></h3>
+            <p><span lang="zh">粉色顶栏左上角的 ☰ 打开抽屉，取代底部导航栏：代理、配置、仪表盘、请求、连接、DNS、资源、工具一目了然。</span><span lang="en">The ☰ in the pink bar opens a drawer in place of the bottom bar, with proxies, profiles, dashboard, requests, connections, DNS, resources and tools.</span></p>
+          </article>
+          <article class="card">
+            <div class="ico"><svg><use href="#i-list"/></svg></div>
+            <h3><span lang="zh">代理即主页</span><span lang="en">Proxies first</span></h3>
+            <p><span lang="zh">分组在粉色标签栏里切换，节点是单列卡片，正在使用的节点左侧有一道粉色竖条。</span><span lang="en">Groups switch in a pink tab strip, nodes are one-column cards, and the node in use carries a pink bar.</span></p>
+          </article>
+          <article class="card">
+            <div class="ico"><svg><use href="#i-plane"/></svg></div>
+            <h3><span lang="zh">纸飞机与统计栏</span><span lang="en">Paper plane and stats bar</span></h3>
+            <p><span lang="zh">点纸飞机连接，底部滑出统计栏，实时显示上传与下载速度；点一下统计栏就能测试连接延迟。</span><span lang="en">Tap the paper plane to connect; a stats bar slides up with live speeds and tests the connection when tapped.</span></p>
+          </article>
+          <article class="card">
+            <div class="ico"><svg><use href="#i-palette"/></svg></div>
+            <h3><span lang="zh">NekoBox 粉</span><span lang="en">NekoBox pink</span></h3>
+            <p><span lang="zh">默认主题色就是 NekoBox 的 #FB7299，浅色与深色模式都适配。</span><span lang="en">The default theme color is NekoBox's #FB7299, in both light and dark mode.</span></p>
+          </article>
+          <article class="card">
+            <div class="ico"><svg><use href="#i-apps"/></svg></div>
+            <h3><span lang="zh">与 FlClash 共存</span><span lang="en">Lives beside FlClash</span></h3>
+            <p><span lang="zh">独立包名 com.nekoclash，可以和 FlClash 同时安装，订阅与设置互不影响。</span><span lang="en">Its own package, com.nekoclash, installs beside FlClash with separate profiles and settings.</span></p>
+          </article>
+          <article class="card">
+            <div class="ico"><svg><use href="#i-chip"/></svg></div>
+            <h3><span lang="zh">mihomo 内核</span><span lang="en">mihomo core</span></h3>
+            <p><span lang="zh">沿用 FlClash 的 mihomo（Clash.Meta）内核，目前为 v1.19.33，并移植了上游的关键修复。</span><span lang="en">FlClash's mihomo (Clash.Meta) core, now v1.19.33, with upstream's key fixes picked over.</span></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="download" class="alt">
+      <div class="wrap">
+        <p class="eyebrow"><span lang="zh">下载</span><span lang="en">Download</span></p>
+        <h2><span lang="zh">下载安装包</span><span lang="en">Get the APK</span></h2>
+        <p class="lead">
+          <span lang="zh">在 GitHub Releases 下载 <code>NekoClash-版本号-android-arm64-v8a.apk</code>，适用于绝大多数 Android 手机。可以和 FlClash 同时安装。</span>
+          <span lang="en">Download <code>NekoClash-&lt;version&gt;-android-arm64-v8a.apk</code> from GitHub Releases; it suits most Android phones and installs beside FlClash.</span>
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://github.com/xikijinise/NekoClash/releases/latest"><span lang="zh">前往最新版本</span><span lang="en">Latest release</span></a>
+          <a class="btn btn-ghost" href="https://github.com/xikijinise/NekoClash/releases"><span lang="zh">全部版本</span><span lang="en">All releases</span></a>
+        </div>
+        <p class="note">
+          <span lang="zh">签名证书 SHA-256：</span><span lang="en">Signing certificate SHA-256: </span><code>0d50e1fe2df180097d95df86fce31d378d6b3a8914393c2930675b4767eca247</code>
+        </p>
+      </div>
+    </section>
+
+    <section id="build">
+      <div class="wrap">
+        <p class="eyebrow"><span lang="zh">构建</span><span lang="en">Build</span></p>
+        <h2><span lang="zh">从源码构建</span><span lang="en">Build from source</span></h2>
+        <p class="lead">
+          <span lang="zh">也可以自己构建。准备好 Flutter 3.47、Go 1.27 以及带 NDK 的 Android SDK，然后运行：</span>
+          <span lang="en">You can also build it yourself. With Flutter 3.47, Go 1.27 and the Android SDK with the NDK, run:</span>
+        </p>
+        <div class="steps">
+          <div>
+            <pre class="code" id="build-cmd">git clone --recursive https://github.com/xikijinise/NekoClash.git
+cd NekoClash
+flutter pub get
+flutter build apk --release \
+  --target-platform android-arm64 \
+  --dart-define=APP_ENV=stable</pre>
+          </div>
+          <ul class="list">
+            <li><span lang="zh">安装包在 <code>build/app/outputs/flutter-apk/app-release.apk</code>，Go 内核会一并编译。</span><span lang="en">The APK lands in <code>build/app/outputs/flutter-apk/app-release.apk</code>; the Go core builds with it.</span></li>
+            <li><span lang="zh">用自己的密钥签名：把 <code>keystore.jks</code> 放进 <code>android/app/</code>，并在 <code>android/local.properties</code> 写入 <code>storePassword</code>、<code>keyAlias</code>、<code>keyPassword</code>。</span><span lang="en">To sign with your own key, put <code>keystore.jks</code> in <code>android/app/</code> and <code>storePassword</code>, <code>keyAlias</code> and <code>keyPassword</code> in <code>android/local.properties</code>.</span></li>
+            <li><span lang="zh">不加 <code>APP_ENV=stable</code> 时右上角会显示“PRE”；debug 构建的包名是 <code>com.nekoclash.dev</code>。</span><span lang="en">Without <code>APP_ENV=stable</code> the app shows a "PRE" banner; debug builds use <code>com.nekoclash.dev</code>.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="automation" class="alt">
+      <div class="wrap">
+        <p class="eyebrow"><span lang="zh">自动化</span><span lang="en">Automation</span></p>
+        <h2><span lang="zh">链接导入与自动化</span><span lang="en">Links and automation</span></h2>
+        <div class="steps">
+          <div>
+            <p class="lead" style="margin-bottom:16px">
+              <span lang="zh">打开下面格式的链接即可导入订阅，<code>clashmeta://</code> 与 <code>flclash://</code> 同样可用。</span>
+              <span lang="en">Open a link in this form to import a subscription; <code>clashmeta://</code> and <code>flclash://</code> work too.</span>
+            </p>
+            <pre class="code">clash://install-config?url=&lt;URL-encoded link&gt;</pre>
+          </div>
+          <div>
+            <p class="lead" style="margin-bottom:16px">
+              <span lang="zh">Tasker、MacroDroid 可以用这些 Action 启动、停止或切换代理，电脑上也能用 adb：</span>
+              <span lang="en">Tasker or MacroDroid can start, stop or toggle the proxy with these actions, and so can adb:</span>
+            </p>
+            <pre class="code">com.nekoclash.action.START
+com.nekoclash.action.STOP
+com.nekoclash.action.TOGGLE
+
+adb shell am start -a com.nekoclash.action.TOGGLE</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <p style="margin:0">
+        <span lang="zh">NekoClash 基于 <a href="https://github.com/chen08209/FlClash">FlClash</a>（chen08209），界面参考 <a href="https://github.com/MatsuriDayo/NekoBoxForAndroid">NekoBox for Android</a>，以 GPL-3.0 协议发布。</span>
+        <span lang="en">NekoClash builds on <a href="https://github.com/chen08209/FlClash">FlClash</a> by chen08209, takes its look from <a href="https://github.com/MatsuriDayo/NekoBoxForAndroid">NekoBox for Android</a>, and is released under GPL-3.0.</span>
+      </p>
+      <nav>
+        <a href="https://github.com/xikijinise/NekoClash">GitHub</a>
+        <a href="https://github.com/xikijinise/NekoClash/blob/main/LICENSE"><span lang="zh">许可证</span><span lang="en">License</span></a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      document.getElementById('lang-toggle').addEventListener('click', function () {
+        var next = root.dataset.lang === 'zh' ? 'en' : 'zh';
+        root.dataset.lang = next;
+        root.lang = next === 'zh' ? 'zh-CN' : 'en';
+        try { localStorage.setItem('nekoclash.lang', next); } catch (e) {}
+      });
+      document.querySelectorAll('pre.code').forEach(function (pre) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'copy';
+        button.textContent = root.dataset.lang === 'zh' ? '复制' : 'Copy';
+        button.addEventListener('click', function () {
+          var text = pre.textContent.replace(button.textContent, '').trim();
+          navigator.clipboard && navigator.clipboard.writeText(text).then(function () {
+            var label = button.textContent;
+            button.textContent = root.dataset.lang === 'zh' ? '已复制' : 'Copied';
+            setTimeout(function () { button.textContent = label; }, 1500);
+          });
+        });
+        pre.appendChild(button);
+      });
+    })();
+  </script>
+</body>
+</html>
