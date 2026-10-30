@@ -394,7 +394,7 @@ jobs:
           flutter --version
           flutter pub get
 
-      # The core embeds this bundle and FlClashHttpOverrides.trustCoreRoots loads it for Dart.
+      # The core embeds this bundle and NekoClashHttpOverrides.trustCoreRoots loads it for Dart.
       # Pinned by hash, so a new bundle from https://curl.se/docs/caextract.html is a reviewed bump.
       - name: Fetch CA certificates
         shell: bash
