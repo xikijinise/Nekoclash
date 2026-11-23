@@ -166,6 +166,32 @@ void main() {
     expect(clicked, 'warning');
   });
 
+  testWidgets('tapping a mobile log row opens selectable details', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const TestApp(
+        wrapInProviderScope: true,
+        child: Scaffold(
+          body: LogItem(
+            selectable: false,
+            log: Log(
+              logLevel: LogLevel.error,
+              payload: 'dial failed: EOF',
+              dateTime: '2024-01-01 12:00:00',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(SelectableText), findsNothing);
+    await tester.tap(find.text('dial failed: EOF'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SelectableText), findsOneWidget);
+  });
+
   group('LogListController', () {
     final logs = seedLogs();
 

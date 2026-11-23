@@ -91,11 +91,12 @@ class Migration {
 
   /// One-off setting changes for upgrades, apart from [currentVersion], which
   /// backups carry and an older app refuses when it is newer than its own.
-  static const upgradeVersion = 2;
+  static const upgradeVersion = 3;
 
   static const Map<int, Config Function(Config config)> _upgrades = {
     1: _resetThemeColors,
     2: _keepGlassLook,
+    3: _fixFormerDefaultHosts,
   };
 
   Future<Config> run() async {
@@ -208,6 +209,50 @@ Config _keepGlassLook(Config config) =>
         ),
       )
     : config;
+
+// Wrong former defaults, which stored lists keep as the user's own entries.
+final _formerBypassDefaults = {
+  '172.2*': [for (var i = 0; i < 10; i++) '172.2$i.*'],
+};
+const _formerFakeIpFilterDefaults = {
+  'dns.msftnsci.com': ['dns.msftncsi.com'],
+  'www.msftnsci.com': ['www.msftncsi.com'],
+};
+
+Config _fixFormerDefaultHosts(Config config) {
+  final dns = config.patchClashConfig.dns;
+  return config.copyWith(
+    networkProps: config.networkProps.copyWith(
+      bypassDomain: _replacing(
+        config.networkProps.bypassDomain,
+        _formerBypassDefaults,
+      ),
+    ),
+    patchClashConfig: config.patchClashConfig.copyWith(
+      dns: dns.copyWith(
+        fakeIpFilter: _replacing(dns.fakeIpFilter, _formerFakeIpFilterDefaults),
+      ),
+    ),
+  );
+}
+
+List<String> _replacing(List<String> hosts, Map<String, List<String>> former) {
+  if (!hosts.any(former.containsKey)) {
+    return hosts;
+  }
+  final added = <String>{};
+  return [
+    for (final host in hosts)
+      ...switch (former[host]) {
+        null => [host],
+        final replacements => [
+          for (final replacement in replacements)
+            if (!hosts.contains(replacement) && added.add(replacement))
+              replacement,
+        ],
+      },
+  ];
+}
 
 bool _isV0(Map<String, Object?>? configMap) =>
     configMap?['proxiesStyle'] != null;

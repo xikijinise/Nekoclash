@@ -79,9 +79,12 @@ class _AndroidContainerState extends ConsumerState<AndroidManager>
   }
 
   @override
-  void onServiceStopped() {
+  void onServiceStopped([ServiceStartFailure? failure]) {
     unawaited(ref.read(setupActionProvider.notifier).setRunning(false));
-    super.onServiceStopped();
+    if (failure != null) {
+      dialogs.showNotifier(failure.label, level: MessageLevel.error);
+    }
+    super.onServiceStopped(failure);
   }
 
   @override

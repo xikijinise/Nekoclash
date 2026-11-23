@@ -164,13 +164,13 @@ void main() {
     }
 
     expect(find.byTooltip(l10n.update), findsOneWidget);
-    expect(autoUpdate(), isFalse);
-
-    await tapMenuPath([l10n.autoUpdate, l10n.turnOn]);
     expect(autoUpdate(), isTrue);
 
     await tapMenuPath([l10n.autoUpdate, l10n.turnOff]);
     expect(autoUpdate(), isFalse);
+
+    await tapMenuPath([l10n.autoUpdate, l10n.turnOn]);
+    expect(autoUpdate(), isTrue);
 
     await tapMenuPath([l10n.resourceUpdateInterval]);
     expect(find.byType(InputDialog), findsOneWidget);

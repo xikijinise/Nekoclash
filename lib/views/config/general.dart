@@ -345,10 +345,12 @@ class GeneralView extends ConsumerWidget {
         update: (state, value) => state.copyWith(tcpConcurrent: value),
       ),
       _clashToggle(
-        title: (l) => l.findProcessMode,
+        title: (l) => l.alwaysFindProcess,
         select: (state) => state.findProcessMode == FindProcessMode.always,
         update: (state, value) => state.copyWith(
-          findProcessMode: value ? FindProcessMode.always : FindProcessMode.off,
+          findProcessMode: value
+              ? FindProcessMode.always
+              : FindProcessMode.strict,
         ),
       ),
       _appSettingToggle(

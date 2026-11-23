@@ -1022,6 +1022,21 @@ abstract class Tun with _$Tun {
   }
 }
 
+bool isUsableMixedPort(int port) => port > 0 && port <= 65535;
+
+Object? unusableMixedPort(Object? patchJson) {
+  if (patchJson is! Map) return null;
+  final raw = patchJson['mixed-port'];
+  return raw != null && _mixedPortFromJson(raw) != raw ? raw : null;
+}
+
+int _mixedPortFromJson(Object? value) => switch (value) {
+  final num port
+      when port == port.truncate() && isUsableMixedPort(port.toInt()) =>
+    port.toInt(),
+  _ => defaultMixedPort,
+};
+
 int _mtuFromJson(int value) =>
     value > 0 ? value.clamp(minTunMtu, maxTunMtu) : defaultTunMtu;
 
@@ -1094,8 +1109,8 @@ abstract class Dns with _$Dns {
     String fakeIpRange,
     @Default('') @JsonKey(name: 'fake-ip-range6') String fakeIpRange6,
     @Default([
-      'dns.msftnsci.com',
-      'www.msftnsci.com',
+      'dns.msftncsi.com',
+      'www.msftncsi.com',
       'www.msftconnecttest.com',
     ])
     @JsonKey(name: 'fake-ip-filter')
@@ -1955,7 +1970,9 @@ Map<String, String> _geoXUrlToJson(Map<GeoResource, String> value) {
 @freezed
 abstract class PatchClashConfig with _$PatchClashConfig {
   const factory PatchClashConfig({
-    @Default(defaultMixedPort) @JsonKey(name: 'mixed-port') int mixedPort,
+    @Default(defaultMixedPort)
+    @JsonKey(name: 'mixed-port', fromJson: _mixedPortFromJson)
+    int mixedPort,
     @Default(0) @JsonKey(name: 'socks-port') int socksPort,
     @Default(0) @JsonKey(name: 'port') int port,
     @Default(0) @JsonKey(name: 'redir-port') int redirPort,
@@ -1964,8 +1981,11 @@ abstract class PatchClashConfig with _$PatchClashConfig {
     @Default(false) @JsonKey(name: 'allow-lan') bool allowLan,
     @Default(LogLevel.error) @JsonKey(name: 'log-level') LogLevel logLevel,
     @Default(false) bool ipv6,
-    @Default(FindProcessMode.off)
-    @JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.off)
+    @Default(FindProcessMode.strict)
+    @JsonKey(
+      name: 'find-process-mode',
+      unknownEnumValue: FindProcessMode.strict,
+    )
     FindProcessMode findProcessMode,
     @Default(InterfaceNameMode.clear)
     @JsonKey(
@@ -2009,7 +2029,7 @@ abstract class PatchClashConfig with _$PatchClashConfig {
     ExternalControllerStatus externalController,
     @Default('') String secret,
     @Default({}) Map<String, String> hosts,
-    @Default(false) @JsonKey(name: 'geo-auto-update') bool geoAutoUpdate,
+    @Default(true) @JsonKey(name: 'geo-auto-update') bool geoAutoUpdate,
     @Default(24) @JsonKey(name: 'geo-update-interval') int geoUpdateInterval,
   }) = _PatchClashConfig;
 

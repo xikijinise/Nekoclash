@@ -166,7 +166,7 @@
   "geodataLoader": "Geo低メモリモード",
   "requests": "リクエスト",
   "recentRequests": "最近のリクエスト",
-  "findProcessMode": "プロセス検出",
+  "alwaysFindProcess": "常にプロセスを検出",
   "init": "初期化",
   "infiniteTime": "無期限",
   "connections": "接続",
@@ -943,5 +943,8 @@
   "connectedTapToTest": "接続済み、ここをタップして接続をテスト",
   "connectionTesting": "テスト中…",
   "connectionTestSuccess": "接続成功：遅延 {delay} ms",
-  "connectionTestFailed": "接続失敗：{reason}"
+  "connectionTestFailed": "接続失敗：{reason}",
+  "mixedPortReset": "混合ポートを {value} にはできないため、{port} に戻しました",
+  "vpnPermissionNotGranted": "VPN の権限が許可されなかったため、VPN は起動しませんでした。ほかのアプリが常時接続 VPN に設定されている場合も起動できません。",
+  "vpnServiceStartFailed": "VPN サービスを起動できませんでした。"
 }

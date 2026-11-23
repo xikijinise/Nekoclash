@@ -166,7 +166,7 @@
   "geodataLoader": "Mode Geo à faible mémoire",
   "requests": "Requêtes",
   "recentRequests": "Requêtes récentes",
-  "findProcessMode": "Recherche de processus",
+  "alwaysFindProcess": "Toujours rechercher le processus",
   "init": "Initialisation",
   "infiniteTime": "N’expire jamais",
   "connections": "Connexions",
@@ -943,5 +943,8 @@
   "connectedTapToTest": "Connecté, touchez ici pour tester la connexion",
   "connectionTesting": "Test en cours…",
   "connectionTestSuccess": "Connexion réussie : {delay} ms de latence",
-  "connectionTestFailed": "Échec de la connexion : {reason}"
+  "connectionTestFailed": "Échec de la connexion : {reason}",
+  "mixedPortReset": "Le port mixte ne peut pas être {value}, il a été remis à {port}",
+  "vpnPermissionNotGranted": "L'autorisation VPN n'a pas été accordée, le VPN n'a donc pas démarré. Un VPN permanent défini pour une autre application l'empêche aussi.",
+  "vpnServiceStartFailed": "Le service VPN n'a pas pu démarrer."
 }

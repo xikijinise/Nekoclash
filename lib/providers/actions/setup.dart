@@ -196,8 +196,13 @@ class SetupAction extends _$SetupAction {
           force: !request.resume,
           preloadInvoke: () => _startCoreRunning(request),
         );
-      } catch (_) {
-        applied = false;
+      } catch (error) {
+        if (_isCurrent(request)) {
+          dialogs.showNotifier(
+            userFacingErrorMessage(error, currentAppLocalizations),
+            level: MessageLevel.error,
+          );
+        }
       }
       if (!applied && _isCurrent(request)) {
         await globalState.safeRun(() => setRunning(false));

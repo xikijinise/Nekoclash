@@ -144,11 +144,12 @@ class Dialogs {
     MessageLevel level = MessageLevel.info,
     MessageActionState? actionState,
   }) {
-    rootNavigatorKey.currentContext?.showNotifier(
-      text,
-      level: level,
-      actionState: actionState,
-    );
+    final context = rootNavigatorKey.currentContext;
+    if (context == null) {
+      commonPrint.log('notifier: $text');
+      return;
+    }
+    context.showNotifier(text, level: level, actionState: actionState);
   }
 
   void showFailures(List<UpdatingMessage> failures) {
@@ -173,6 +174,17 @@ class Dialogs {
           ),
         );
     }
+  }
+
+  void showMixedPortReset(Object value, int port) {
+    commonPrint.log(
+      'mixed-port $value reset to $port',
+      logLevel: LogLevel.warning,
+    );
+    showNotifier(
+      currentAppLocalizations.mixedPortReset(value, port),
+      level: MessageLevel.warning,
+    );
   }
 
   Future<void> openUrl(String url) async {

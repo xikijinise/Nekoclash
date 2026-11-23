@@ -137,6 +137,9 @@ class BackupAction extends _$BackupAction {
         ),
       ),
     );
+    if (unusableMixedPort(configMap?['patchClashConfig']) case final value?) {
+      dialogs.showMixedPortReset(value, config.patchClashConfig.mixedPort);
+    }
   }
 
   /// The files go in before the rows that name them, so the returned callback

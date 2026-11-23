@@ -166,7 +166,7 @@
   "geodataLoader": "Geo 저메모리 모드",
   "requests": "요청",
   "recentRequests": "최근 요청",
-  "findProcessMode": "프로세스 찾기",
+  "alwaysFindProcess": "항상 프로세스 찾기",
   "init": "초기화",
   "infiniteTime": "만료되지 않음",
   "connections": "연결",
@@ -943,5 +943,8 @@
   "connectedTapToTest": "연결됨, 여기를 눌러 연결 테스트",
   "connectionTesting": "테스트 중…",
   "connectionTestSuccess": "연결 성공: 지연 {delay} ms",
-  "connectionTestFailed": "연결 실패: {reason}"
+  "connectionTestFailed": "연결 실패: {reason}",
+  "mixedPortReset": "혼합 포트는 {value}일 수 없어 {port}(으)로 되돌렸습니다",
+  "vpnPermissionNotGranted": "VPN 권한이 허용되지 않아 VPN을 시작하지 않았습니다. 다른 앱이 상시 사용 VPN으로 설정되어 있어도 시작할 수 없습니다.",
+  "vpnServiceStartFailed": "VPN 서비스를 시작하지 못했습니다."
 }

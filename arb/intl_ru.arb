@@ -166,7 +166,7 @@
   "geodataLoader": "Geo: экономия памяти",
   "requests": "Запросы",
   "recentRequests": "Последние запросы",
-  "findProcessMode": "Поиск процесса",
+  "alwaysFindProcess": "Всегда искать процесс",
   "init": "Инициализация",
   "infiniteTime": "Бессрочно",
   "connections": "Соединения",
@@ -943,5 +943,8 @@
   "connectedTapToTest": "Подключено, нажмите, чтобы проверить соединение",
   "connectionTesting": "Проверка…",
   "connectionTestSuccess": "Соединение работает: задержка {delay} мс",
-  "connectionTestFailed": "Ошибка соединения: {reason}"
+  "connectionTestFailed": "Ошибка соединения: {reason}",
+  "mixedPortReset": "Смешанный порт не может быть {value}, он возвращён к {port}",
+  "vpnPermissionNotGranted": "Разрешение на VPN не выдано, поэтому VPN не запущен. Постоянная VPN, заданная для другого приложения, тоже мешает запуску.",
+  "vpnServiceStartFailed": "Не удалось запустить службу VPN."
 }

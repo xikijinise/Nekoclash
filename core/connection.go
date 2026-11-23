@@ -2,6 +2,9 @@ package core
 
 import (
 	"github.com/metacubex/mihomo/component/resolver"
+	"github.com/metacubex/mihomo/constant"
+	"github.com/metacubex/mihomo/dns"
+	"github.com/metacubex/mihomo/tunnel"
 	"github.com/metacubex/mihomo/tunnel/statistic"
 )
 
@@ -46,10 +49,42 @@ func handleResetConnections() bool {
 }
 
 // A connection that went out over a network the device has left hangs until
-// TCP gives up on it, and so do the DNS clients' pooled connections.
+// TCP gives up on it, and so do the DNS clients' pooled connections and the
+// socket or QUIC connection a WireGuard, Hysteria2 or TUIC outbound shares.
 func handleResetNetwork() {
 	handleCloseConnections()
+	resetOutbounds()
 	resolver.ResetConnection()
+	configMu.Lock()
+	dns.ClearAll()
+	configMu.Unlock()
+	bumpRouteEpoch()
+}
+
+type networkResetter interface{ ResetNetwork() }
+
+// AllProxies keeps one proxy per name; providers may each hold one by that name.
+func resetOutbounds() {
+	reset := make(map[networkResetter]struct{})
+	visit := func(proxy constant.Proxy) {
+		outbound, ok := proxy.Adapter().(networkResetter)
+		if !ok {
+			return
+		}
+		if _, done := reset[outbound]; done {
+			return
+		}
+		reset[outbound] = struct{}{}
+		outbound.ResetNetwork()
+	}
+	for _, proxy := range tunnel.AllProxies() {
+		visit(proxy)
+	}
+	for _, provider := range tunnel.ProvidersSnapshot() {
+		for _, proxy := range provider.Proxies() {
+			visit(proxy)
+		}
+	}
 }
 
 func handleCloseConnection(connectionId string) bool {

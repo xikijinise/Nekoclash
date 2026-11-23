@@ -208,22 +208,9 @@ class _AccessViewState extends ConsumerState<AccessView>
   AccessControlProps _getRealAccessControlProps(
     AccessControlProps accessControl,
   ) {
-    final packages = ref.read(packagesProvider);
-    if (packages.isEmpty) {
-      return accessControl;
-    }
-    final viewPackageNames = packages
-        .whereVisible(
-          isFilterSystemApp: accessControl.isFilterSystemApp,
-          isFilterNonInternetApp: accessControl.isFilterNonInternetApp,
-        )
-        .map((item) => item.packageName)
-        .toSet();
-    return accessControl.copyWithNewList(
-      accessControl.currentList
-          .where((item) => viewPackageNames.contains(item))
-          .toList()
-        ..sort(),
+    return accessControl.copyWith(
+      acceptList: [...accessControl.acceptList]..sort(),
+      rejectList: [...accessControl.rejectList]..sort(),
     );
   }
 

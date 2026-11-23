@@ -492,7 +492,7 @@ void main() {
       await teardownView(tester);
     });
 
-    testWidgets('drops hidden packages and sorts what it persists', (
+    testWidgets('keeps hidden packages and sorts what it persists', (
       tester,
     ) async {
       seedAccessControl(
@@ -515,7 +515,11 @@ void main() {
           .read(vpnSettingProvider)
           .accessControlProps
           .rejectList;
-      expect(saved, ['com.example.browser', 'com.example.chat']);
+      expect(saved, [
+        'com.android.settings',
+        'com.example.browser',
+        'com.example.chat',
+      ]);
 
       await teardownView(tester);
     });
