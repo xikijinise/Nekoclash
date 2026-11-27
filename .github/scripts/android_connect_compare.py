@@ -116,7 +116,10 @@ def complete_disclaimer(app_dir: Path):
     nodes = dump_ui_nodes(app_dir / '00_launch.xml')
     if dismiss_system_anr(nodes):
         nodes = dump_ui_nodes(app_dir / '00_launch.xml')
-    agree = find_node(nodes, lambda n: 'agree' in f"{n['text']} {n['desc']}".lower())
+    agree = find_node(
+        nodes,
+        lambda n: 'agree' in f"{n['text']} {n['desc']}".lower() and (n['clickable'] or 'Button' in n['class']),
+    )
     if not agree:
         return False
     tap(agree['cx'], agree['cy'], 2.5)
@@ -133,7 +136,10 @@ def complete_disclaimer(app_dir: Path):
         time.sleep(0.2)
     time.sleep(1.0)
     typed_nodes = dump_ui_nodes(app_dir / '00_restate_typed.xml')
-    confirm = find_node(typed_nodes, lambda n: 'confirm' in f"{n['text']} {n['desc']}".lower())
+    confirm = find_node(
+        typed_nodes,
+        lambda n: 'confirm' in f"{n['text']} {n['desc']}".lower() and (n['clickable'] or 'Button' in n['class']),
+    )
     if confirm:
         tap(confirm['cx'], confirm['cy'], 4.0)
         return True
