@@ -273,6 +273,83 @@ def parse_gfxinfo(output: str):
     return data
 
 
+def dismiss_system_anr_if_present(nodes):
+    has_anr = any("isn't responding" in f"{n['text']} {n['desc']}".lower() for n in nodes)
+    if not has_anr:
+        return False
+    close_btn = next(
+        (n for n in nodes if 'close app' in f"{n['text']} {n['desc']}".lower() or 'wait' in f"{n['text']} {n['desc']}".lower()),
+        None,
+    )
+    if close_btn:
+        adb_shell('input', 'tap', str(close_btn['cx']), str(close_btn['cy']))
+        time.sleep(2.0)
+        return True
+    adb_shell('input', 'keyevent', 'KEYCODE_BACK')
+    time.sleep(1.5)
+    return True
+
+
+def find_flutter_surface_layer(package: str):
+    res = adb_shell('dumpsys', 'SurfaceFlinger', '--list')
+    layers = [ln.strip() for ln in res.stdout.splitlines() if package in ln]
+    for ln in layers:
+        if 'SurfaceView[' in ln and 'Background' not in ln:
+            return ln
+    for ln in layers:
+        if 'MainActivity' in ln:
+            return ln
+    return layers[0] if layers else None
+
+
+def clear_surface_latency(layer: str):
+    if layer:
+        adb_shell('dumpsys', 'SurfaceFlinger', '--latency-clear', f"'{layer}'")
+
+
+def collect_surface_latency(layer: str, out_path: Path):
+    if not layer:
+        return {'layer': None, 'frames': 0}
+    res = adb_shell('dumpsys', 'SurfaceFlinger', '--latency', f"'{layer}'")
+    out_path.write_text(res.stdout, encoding='utf-8')
+    lines = [ln.strip() for ln in res.stdout.splitlines() if ln.strip()]
+    if len(lines) < 3:
+        return {'layer': layer, 'frames': 0}
+    timestamps_ns = []
+    for ln in lines[1:]:
+        parts = ln.split()
+        if len(parts) >= 2 and parts[1].isdigit():
+            ts = int(parts[1])
+            if 0 < ts < (1 << 62):
+                timestamps_ns.append(ts)
+    timestamps_ns.sort()
+    deltas_ms = []
+    for i in range(1, len(timestamps_ns)):
+        dt = (timestamps_ns[i] - timestamps_ns[i - 1]) / 1e6
+        if 1.0 <= dt <= 250.0:
+            deltas_ms.append(dt)
+    if not deltas_ms:
+        return {'layer': layer, 'frames': len(timestamps_ns), 'active_intervals': 0}
+    deltas_ms.sort()
+    def pct(p):
+        idx = min(len(deltas_ms) - 1, max(0, int(round((p / 100.0) * (len(deltas_ms) - 1)))))
+        return round(deltas_ms[idx], 2)
+    janky = sum(1 for d in deltas_ms if d > 20.0)
+    avg_ms = statistics.mean(deltas_ms)
+    return {
+        'layer': layer,
+        'frames': len(deltas_ms),
+        'janky_frames': janky,
+        'janky_percent': round(janky * 100.0 / len(deltas_ms), 2),
+        'avg_frame_ms': round(avg_ms, 2),
+        'est_fps': round(1000.0 / avg_ms, 1) if avg_ms > 0 else None,
+        'p50_ms': pct(50),
+        'p90_ms': pct(90),
+        'p95_ms': pct(95),
+        'p99_ms': pct(99),
+    }
+
+
 def benchmark_app(name: str, apk_path: Path, package: str, out_dir: Path):
     app_dir = out_dir / name
     app_dir.mkdir(parents=True, exist_ok=True)
@@ -289,9 +366,12 @@ def benchmark_app(name: str, apk_path: Path, package: str, out_dir: Path):
     first_res = adb_shell('am', 'start', '-W', '-n', component)
     first_start = parse_start_metrics(first_res.stdout)
     time.sleep(5)
-    screencap(app_dir / '01_first_launch.png')
     first_xml = dump_ui_xml(app_dir / '01_first_launch.xml')
     first_nodes = parse_ui_nodes(first_xml)
+    if dismiss_system_anr_if_present(first_nodes):
+        first_xml = dump_ui_xml(app_dir / '01_first_launch.xml')
+        first_nodes = parse_ui_nodes(first_xml)
+    screencap(app_dir / '01_first_launch.png')
 
     consent_action = try_dismiss_first_launch_dialog(first_nodes)
     restate_action = {'completed': False}
@@ -328,6 +408,8 @@ def benchmark_app(name: str, apk_path: Path, package: str, out_dir: Path):
     services_raw = adb_shell('dumpsys', 'activity', 'services', package).stdout
     (app_dir / 'services.txt').write_text(services_raw, encoding='utf-8')
 
+    surface_layer = find_flutter_surface_layer(package)
+    clear_surface_latency(surface_layer)
     adb_shell('dumpsys', 'gfxinfo', package, 'reset')
     nav_targets = find_bottom_nav_targets(dash_nodes, width, height)
     visited_tabs = []
@@ -357,6 +439,7 @@ def benchmark_app(name: str, apk_path: Path, package: str, out_dir: Path):
         adb_shell('input', 'tap', str(nav_targets[0]['cx']), str(nav_targets[0]['cy']))
         time.sleep(1.0)
 
+    surface_latency = collect_surface_latency(surface_layer, app_dir / 'surface_latency.txt')
     gfx_raw = adb_shell('dumpsys', 'gfxinfo', package).stdout
     (app_dir / 'gfxinfo.txt').write_text(gfx_raw, encoding='utf-8')
     gfx = parse_gfxinfo(gfx_raw)
@@ -404,6 +487,7 @@ def benchmark_app(name: str, apk_path: Path, package: str, out_dir: Path):
         'cpu_idle': cpu_idle,
         'mem_after_nav': mem_after,
         'mem_background': mem_bg,
+        'surface_latency': surface_latency,
         'gfxinfo': gfx,
         'visited_tabs': visited_tabs,
         'warm_resume': warm_resume,
@@ -419,22 +503,25 @@ def benchmark_app(name: str, apk_path: Path, package: str, out_dir: Path):
 
 def write_summary_md(results, out_path: Path):
     a, b = results[0], results[1]
+    sa, sb = a.get('surface_latency', {}), b.get('surface_latency', {})
     rows = [
         ('APK 大小 (MB)', a['apk']['size_mb'], b['apk']['size_mb']),
         ('原生 .so 总大小 (MB)', a['apk']['total_so_mb'], b['apk']['total_so_mb']),
         ('首次启动 TotalTime (ms)', a['first_launch']['total_time_ms'], b['first_launch']['total_time_ms']),
-        ('首次启动弹窗自动点击', a['first_launch_dialog']['clicked'], b['first_launch_dialog']['clicked']),
+        ('免责声明自动通过', a['restate_dialog'].get('completed'), b['restate_dialog'].get('completed')),
         ('冷启动中位数 TotalTime (ms)', a['cold_start_median_ms'], b['cold_start_median_ms']),
         ('冷启动均值 TotalTime (ms)', a['cold_start_avg_ms'], b['cold_start_avg_ms']),
         ('静置内存 TOTAL PSS (MB)', a['mem_idle'].get('total_pss_mb'), b['mem_idle'].get('total_pss_mb')),
         ('静置内存 TOTAL RSS (MB)', a['mem_idle'].get('total_rss_mb'), b['mem_idle'].get('total_rss_mb')),
         ('静置 Native Heap (MB)', a['mem_idle'].get('native_heap_pss_mb'), b['mem_idle'].get('native_heap_pss_mb')),
+        ('静置 Code PSS (MB)', a['mem_idle'].get('code_pss_mb'), b['mem_idle'].get('code_pss_mb')),
         ('静置 CPU 均值 (%)', a['cpu_idle']['avg_percent'], b['cpu_idle']['avg_percent']),
         ('操作后内存 TOTAL PSS (MB)', a['mem_after_nav'].get('total_pss_mb'), b['mem_after_nav'].get('total_pss_mb')),
         ('后台内存 TOTAL PSS (MB)', a['mem_background'].get('total_pss_mb'), b['mem_background'].get('total_pss_mb')),
-        ('渲染总帧数', a['gfxinfo'].get('total_frames'), b['gfxinfo'].get('total_frames')),
-        ('掉帧数 / 掉帧率 (%)', f"{a['gfxinfo'].get('janky_frames')} ({a['gfxinfo'].get('janky_percent')}%)", f"{b['gfxinfo'].get('janky_frames')} ({b['gfxinfo'].get('janky_percent')}%)"),
-        ('帧耗时 P50 / P90 / P95 / P99 (ms)', f"{a['gfxinfo'].get('p50_ms')}/{a['gfxinfo'].get('p90_ms')}/{a['gfxinfo'].get('p95_ms')}/{a['gfxinfo'].get('p99_ms')}", f"{b['gfxinfo'].get('p50_ms')}/{b['gfxinfo'].get('p90_ms')}/{b['gfxinfo'].get('p95_ms')}/{b['gfxinfo'].get('p99_ms')}"),
+        ('SurfaceFlinger 采样帧数', sa.get('frames'), sb.get('frames')),
+        ('交互估算 FPS', sa.get('est_fps'), sb.get('est_fps')),
+        ('掉帧数 (>20ms) / 掉帧率 (%)', f"{sa.get('janky_frames')} ({sa.get('janky_percent')}%)", f"{sb.get('janky_frames')} ({sb.get('janky_percent')}%)"),
+        ('帧间隔 P50/P90/P95/P99 (ms)', f"{sa.get('p50_ms')}/{sa.get('p90_ms')}/{sa.get('p95_ms')}/{sa.get('p99_ms')}", f"{sb.get('p50_ms')}/{sb.get('p90_ms')}/{sb.get('p95_ms')}/{sb.get('p99_ms')}"),
         ('后台切回热启动 (ms)', a['warm_resume']['total_time_ms'], b['warm_resume']['total_time_ms']),
         ('后台切换进程存活', a['pid_survived_background'], b['pid_survived_background']),
         ('Logcat Error 行数', a['logcat_stats']['error_lines'], b['logcat_stats']['error_lines']),
