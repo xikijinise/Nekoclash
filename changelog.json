@@ -8,6 +8,16 @@
       "prerelease": false,
       "groups": [
         {
+          "type": "fix",
+          "entries": [
+            {
+              "id": "4e5f742",
+              "scope": "ui",
+              "text": "Keep drawing cleared line chart baseline"
+            }
+          ]
+        },
+        {
           "type": "perf",
           "entries": [
             {

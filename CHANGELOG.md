@@ -2,6 +2,10 @@
 
 ## v0.9.4 (2026-11-27)
 
+**Bug Fixes**
+
+- **ui** Keep drawing cleared line chart baseline (4e5f742)
+
 **Performance**
 
 - **dashboard** Isolate country badge spinner and add traffic repaint tests (7d29278)
