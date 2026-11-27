@@ -7,9 +7,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  compare:
-    name: NekoClash vs FlClash (Android Emulator)
+  benchmark:
+    name: ${{ matrix.app_name }} (Pixel 6 API 34)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app_name: NekoClash
+            repo: xikijinise/Nekoclash
+            pattern: 'NekoClash-*-android-x86_64.apk'
+            package: com.nekoclash
+          - app_name: FlClash
+            repo: chen08209/FlClash
+            pattern: 'FlClash-[0-9]*-android-amd64.apk'
+            package: com.follow.clash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,18 +32,16 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Download latest release APKs
+      - name: Download latest release APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p /tmp/apks
-          gh release download --repo xikijinise/Nekoclash --pattern 'NekoClash-*-android-x86_64.apk' --dir /tmp/apks
-          gh release download --repo chen08209/FlClash --pattern 'FlClash-[0-9]*-android-amd64.apk' --dir /tmp/apks
-          mv /tmp/apks/NekoClash-*-android-x86_64.apk /tmp/apks/neko.apk
-          mv /tmp/apks/FlClash-[0-9]*-android-amd64.apk /tmp/apks/flclash.apk
-          ls -lh /tmp/apks
+          gh release download --repo "${{ matrix.repo }}" --pattern "${{ matrix.pattern }}" --dir /tmp/apks
+          mv /tmp/apks/*.apk /tmp/apks/app.apk
+          ls -lh /tmp/apks/app.apk
 
-      - name: Run comparison on Android Emulator
+      - name: Run benchmark on Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -40,19 +50,43 @@ jobs:
           profile: pixel_6
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
-          script: python3 .github/scripts/android_compare.py --neko-apk /tmp/apks/neko.apk --flclash-apk /tmp/apks/flclash.apk --out-dir compare-results
+          script: python3 .github/scripts/android_compare.py --app-name ${{ matrix.app_name }} --apk /tmp/apks/app.apk --package ${{ matrix.package }} --out-dir compare-results
 
-      - name: Publish step summary
-        if: always()
-        run: |
-          if [ -f compare-results/summary.md ]; then
-            cat compare-results/summary.md >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Upload comparison artifacts
+      - name: Upload app results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-compare-results
+          name: compare-${{ matrix.app_name }}
           path: compare-results
           if-no-files-found: ignore
+
+  report:
+    name: Merge Comparison Report
+    needs: [benchmark]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download NekoClash results
+        uses: actions/download-artifact@v4
+        with:
+          name: compare-NekoClash
+          path: merged
+
+      - name: Download FlClash results
+        uses: actions/download-artifact@v4
+        with:
+          name: compare-FlClash
+          path: merged
+
+      - name: Generate side-by-side summary
+        run: |
+          python3 .github/scripts/android_compare.py --merge merged/NekoClash.json merged/FlClash.json --out-dir merged
+          cat merged/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload merged comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-compare-results
+          path: merged

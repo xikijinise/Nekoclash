@@ -154,8 +154,11 @@ def try_complete_restate_dialog(nodes, app_dir: Path):
     statement = stmt_node['text'].strip()
     adb_shell('input', 'tap', str(edit_node['cx']), str(edit_node['cy']))
     time.sleep(1.0)
-    encoded = statement.replace(' ', '%s')
-    adb_shell(f"input text '{encoded}'", timeout=60)
+    chunk_size = 20
+    for start in range(0, len(statement), chunk_size):
+        chunk = statement[start:start + chunk_size].replace(' ', '%s')
+        adb_shell(f"input text '{chunk}'", timeout=30)
+        time.sleep(0.2)
     time.sleep(1.0)
     screencap(app_dir / '02b_restate_typed.png')
     typed_xml = dump_ui_xml(app_dir / '02b_restate_typed.xml')
@@ -450,24 +453,37 @@ def write_summary_md(results, out_path: Path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--neko-apk', required=True)
-    parser.add_argument('--flclash-apk', required=True)
+    parser.add_argument('--app-name')
+    parser.add_argument('--apk')
+    parser.add_argument('--package')
+    parser.add_argument('--merge', nargs=2)
     parser.add_argument('--out-dir', required=True)
     args = parser.parse_args()
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    results = [
-        benchmark_app('NekoClash', Path(args.neko_apk), 'com.nekoclash', out_dir),
-        benchmark_app('FlClash', Path(args.flclash_apk), 'com.follow.clash', out_dir),
-    ]
-    (out_dir / 'comparison.json').write_text(
-        json.dumps(results, indent=2, ensure_ascii=False),
+    if args.merge:
+        results = [
+            json.loads(Path(p).read_text(encoding='utf-8'))
+            for p in args.merge
+        ]
+        (out_dir / 'comparison.json').write_text(
+            json.dumps(results, indent=2, ensure_ascii=False),
+            encoding='utf-8',
+        )
+        write_summary_md(results, out_dir / 'summary.md')
+        print((out_dir / 'summary.md').read_text(encoding='utf-8'))
+        return
+
+    if not (args.app_name and args.apk and args.package):
+        parser.error('Provide either --merge <a.json> <b.json> or --app-name/--apk/--package')
+
+    result = benchmark_app(args.app_name, Path(args.apk), args.package, out_dir)
+    (out_dir / f'{args.app_name}.json').write_text(
+        json.dumps(result, indent=2, ensure_ascii=False),
         encoding='utf-8',
     )
-    write_summary_md(results, out_dir / 'summary.md')
-    print((out_dir / 'summary.md').read_text(encoding='utf-8'))
 
 
 if __name__ == '__main__':
