@@ -179,6 +179,30 @@ def sample_cpu(pid: str, count: int = 3):
     }
 
 
+def sample_threads_cpu(pid: str, out_path: Path, count: int = 5):
+    if not pid:
+        return []
+    res = adb_shell('top', '-H', '-b', '-n', str(count), '-d', '1', '-p', pid, timeout=max(25, count * 5))
+    out_path.write_text(res.stdout, encoding='utf-8')
+    totals = {}
+    for line in res.stdout.splitlines():
+        parts = line.split()
+        if len(parts) < 10 or not parts[0].isdigit():
+            continue
+        try:
+            cpu = float(parts[8].rstrip('%'))
+        except ValueError:
+            continue
+        if cpu <= 0:
+            continue
+        tid = parts[0]
+        name = ' '.join(parts[11:]) if len(parts) > 11 else parts[-1]
+        key = f'{tid}:{name}'
+        totals[key] = totals.get(key, 0.0) + cpu
+    ranked = sorted(totals.items(), key=lambda x: x[1], reverse=True)[:12]
+    return [{'thread': k, 'avg_cpu': round(v / count, 2)} for k, v in ranked]
+
+
 def check_tun_up() -> bool:
     out = adb_shell('ip', 'addr', 'show').stdout
     return 'tun0' in out
@@ -317,6 +341,18 @@ def run_connection_test(name: str, apk_path: Path, package: str, out_dir: Path):
         (app_dir / 'meminfo_steady.txt').write_text(mem_steady_raw, encoding='utf-8')
         mem_steady = parse_meminfo(mem_steady_raw)
         cpu_steady = sample_cpu(pid_conn, count=5)
+        threads_fg = sample_threads_cpu(pid_conn, app_dir / 'threads_fg.txt', count=5)
+
+        adb_shell('input', 'keyevent', 'KEYCODE_HOME')
+        time.sleep(10.0)
+        mem_bg_conn_raw = adb_shell('dumpsys', 'meminfo', package).stdout
+        (app_dir / 'meminfo_bg_connected.txt').write_text(mem_bg_conn_raw, encoding='utf-8')
+        mem_bg_conn = parse_meminfo(mem_bg_conn_raw)
+        cpu_bg_conn = sample_cpu(pid_conn, count=5)
+        threads_bg = sample_threads_cpu(pid_conn, app_dir / 'threads_bg.txt', count=5)
+
+        adb_shell('am', 'start', '-W', '-n', component)
+        time.sleep(2.0)
 
         stop_clicked = False
         conn_nodes = dump_ui_nodes(app_dir / '05_before_stop.xml')
@@ -375,6 +411,10 @@ def run_connection_test(name: str, apk_path: Path, package: str, out_dir: Path):
                 'cpu': cpu_conn,
                 'steady_30s_mem': mem_steady,
                 'steady_30s_cpu': cpu_steady,
+                'steady_fg_threads': threads_fg,
+                'bg_connected_mem': mem_bg_conn,
+                'bg_connected_cpu': cpu_bg_conn,
+                'bg_connected_threads': threads_bg,
             },
             'vpn_stop': {
                 'stop_clicked': stop_clicked,
