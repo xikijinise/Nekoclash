@@ -146,8 +146,36 @@ def try_dismiss_first_launch_dialog(nodes):
     return {'clicked': False, 'label': None}
 
 
+def try_complete_restate_dialog(nodes, app_dir: Path):
+    edit_node = next((n for n in nodes if 'EditText' in n['class']), None)
+    stmt_node = next((n for n in nodes if len(n['text']) >= 40), None)
+    if not edit_node or not stmt_node:
+        return {'completed': False}
+    statement = stmt_node['text'].strip()
+    adb_shell('input', 'tap', str(edit_node['cx']), str(edit_node['cy']))
+    time.sleep(1.0)
+    encoded = statement.replace(' ', '%s')
+    adb_shell(f"input text '{encoded}'", timeout=60)
+    time.sleep(1.0)
+    screencap(app_dir / '02b_restate_typed.png')
+    typed_xml = dump_ui_xml(app_dir / '02b_restate_typed.xml')
+    typed_nodes = parse_ui_nodes(typed_xml)
+    confirm_node = next(
+        (
+            n for n in typed_nodes
+            if 'confirm' in f"{n['text']} {n['desc']}".lower() or '确定' in f"{n['text']} {n['desc']}"
+        ),
+        None,
+    )
+    if confirm_node:
+        adb_shell('input', 'tap', str(confirm_node['cx']), str(confirm_node['cy']))
+        time.sleep(4.0)
+        return {'completed': True, 'statement_len': len(statement), 'confirm_pos': [confirm_node['cx'], confirm_node['cy']]}
+    return {'completed': False, 'statement_len': len(statement)}
+
+
 def find_bottom_nav_targets(nodes, width: int, height: int):
-    min_y = int(height * 0.80)
+    min_y = int(height * 0.82)
     candidates = []
     for n in nodes:
         x1, y1, x2, y2 = n['bounds']
@@ -177,18 +205,19 @@ def parse_start_metrics(output: str):
 
 def parse_meminfo(output: str):
     data = {}
+    summary_section = output.split('App Summary', 1)[1] if 'App Summary' in output else output
     patterns = {
         'total_pss_kb': r'TOTAL PSS:\s*(\d+)',
         'total_rss_kb': r'TOTAL RSS:\s*(\d+)',
-        'native_heap_pss_kb': r'Native Heap\s+(\d+)',
-        'dalvik_heap_pss_kb': r'Dalvik Heap\s+(\d+)',
-        'graphics_pss_kb': r'Graphics\s+(\d+)',
-        'egl_mtrack_kb': r'EGL mtrack\s+(\d+)',
-        'gl_mtrack_kb': r'GL mtrack\s+(\d+)',
-        'code_pss_kb': r'Code\s+(\d+)',
+        'java_heap_pss_kb': r'Java Heap:\s*(\d+)',
+        'native_heap_pss_kb': r'Native Heap:\s*(\d+)',
+        'code_pss_kb': r'Code:\s*(\d+)',
+        'graphics_pss_kb': r'Graphics:\s*(\d+)',
+        'private_other_pss_kb': r'Private Other:\s*(\d+)',
+        'system_pss_kb': r'System:\s*(\d+)',
     }
     for key, pat in patterns.items():
-        m = re.search(pat, output)
+        m = re.search(pat, summary_section)
         if m:
             data[key] = int(m.group(1))
     if 'total_pss_kb' not in data:
@@ -262,14 +291,13 @@ def benchmark_app(name: str, apk_path: Path, package: str, out_dir: Path):
     first_nodes = parse_ui_nodes(first_xml)
 
     consent_action = try_dismiss_first_launch_dialog(first_nodes)
+    restate_action = {'completed': False}
     if consent_action['clicked']:
-        time.sleep(3)
+        time.sleep(2.5)
         screencap(app_dir / '02_after_consent.png')
         after_xml = dump_ui_xml(app_dir / '02_after_consent.xml')
-        second_action = try_dismiss_first_launch_dialog(parse_ui_nodes(after_xml))
-        if second_action['clicked']:
-            time.sleep(2)
-            screencap(app_dir / '02b_after_second_dialog.png')
+        restate_action = try_complete_restate_dialog(parse_ui_nodes(after_xml), app_dir)
+        screencap(app_dir / '02c_after_restate.png')
 
     cold_starts = []
     for i in range(3):
@@ -365,6 +393,7 @@ def benchmark_app(name: str, apk_path: Path, package: str, out_dir: Path):
         'apk': apk_info,
         'first_launch': first_start,
         'first_launch_dialog': consent_action,
+        'restate_dialog': restate_action,
         'cold_starts': cold_starts,
         'cold_start_median_ms': int(statistics.median(valid_totals)) if valid_totals else None,
         'cold_start_avg_ms': round(statistics.mean(valid_totals), 1) if valid_totals else None,
