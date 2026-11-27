@@ -308,15 +308,18 @@ def run_connection_test(name: str, apk_path: Path, package: str, out_dir: Path):
         vpn_dialog_accepted = False
         if start_btn:
             start_pos = [start_btn['cx'], start_btn['cy']]
-            tap(start_btn['cx'], start_btn['cy'], 2.5)
-            vpn_nodes = dump_ui_nodes(app_dir / '04_vpn_dialog.xml')
-            ok_btn = find_node(
-                vpn_nodes,
-                lambda n: n['res_id'] == 'android:id/button1' or f"{n['text']} {n['desc']}".strip().lower() == 'ok',
-            )
-            if ok_btn:
-                tap(ok_btn['cx'], ok_btn['cy'], 1.0)
-                vpn_dialog_accepted = True
+            tap(start_btn['cx'], start_btn['cy'], 1.5)
+            for _ in range(4):
+                vpn_nodes = dump_ui_nodes(app_dir / '04_vpn_dialog.xml')
+                ok_btn = find_node(
+                    vpn_nodes,
+                    lambda n: n['res_id'] == 'android:id/button1' or f"{n['text']} {n['desc']}".strip().lower() == 'ok',
+                )
+                if ok_btn:
+                    tap(ok_btn['cx'], ok_btn['cy'], 1.0)
+                    vpn_dialog_accepted = True
+                    break
+                time.sleep(1.5)
 
         time.sleep(5.0)
         screencap(app_dir / '04_dashboard_connected.png')
