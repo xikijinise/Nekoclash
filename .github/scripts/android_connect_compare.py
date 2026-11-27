@@ -161,10 +161,10 @@ def parse_meminfo(output: str):
     return data
 
 
-def sample_cpu(pid: str):
+def sample_cpu(pid: str, count: int = 3):
     if not pid:
-        return None
-    res = adb_shell('top', '-b', '-n', '3', '-d', '1', '-p', pid, timeout=20)
+        return {'samples': [], 'avg_percent': None}
+    res = adb_shell('top', '-b', '-n', str(count), '-d', '1', '-p', pid, timeout=max(20, count * 5))
     samples = []
     for line in res.stdout.splitlines():
         parts = line.split()
@@ -173,7 +173,10 @@ def sample_cpu(pid: str):
                 samples.append(float(parts[8].rstrip('%')))
             except ValueError:
                 pass
-    return round(statistics.mean(samples), 2) if samples else None
+    return {
+        'samples': samples,
+        'avg_percent': round(statistics.mean(samples), 2) if samples else None,
+    }
 
 
 def check_tun_up() -> bool:
@@ -307,7 +310,13 @@ def run_connection_test(name: str, apk_path: Path, package: str, out_dir: Path):
         mem_conn_raw = adb_shell('dumpsys', 'meminfo', package).stdout
         (app_dir / 'meminfo_connected.txt').write_text(mem_conn_raw, encoding='utf-8')
         mem_conn = parse_meminfo(mem_conn_raw)
-        cpu_conn = sample_cpu(pid_conn)
+        cpu_conn = sample_cpu(pid_conn, count=3)
+
+        time.sleep(30.0)
+        mem_steady_raw = adb_shell('dumpsys', 'meminfo', package).stdout
+        (app_dir / 'meminfo_steady.txt').write_text(mem_steady_raw, encoding='utf-8')
+        mem_steady = parse_meminfo(mem_steady_raw)
+        cpu_steady = sample_cpu(pid_conn, count=5)
 
         stop_clicked = False
         conn_nodes = dump_ui_nodes(app_dir / '05_before_stop.xml')
@@ -363,7 +372,9 @@ def run_connection_test(name: str, apk_path: Path, package: str, out_dir: Path):
             },
             'connected_resources': {
                 'mem': mem_conn,
-                'cpu_avg_percent': cpu_conn,
+                'cpu': cpu_conn,
+                'steady_30s_mem': mem_steady,
+                'steady_30s_cpu': cpu_steady,
             },
             'vpn_stop': {
                 'stop_clicked': stop_clicked,
@@ -392,9 +403,12 @@ def write_summary(results, out_path: Path):
         ('代理 HTTP 转发成功率', f"{a['proxy_forwarding']['http_test']['success_count']}/{a['proxy_forwarding']['http_test']['total_count']}", f"{b['proxy_forwarding']['http_test']['success_count']}/{b['proxy_forwarding']['http_test']['total_count']}"),
         ('代理转发平均延迟 (ms)', a['proxy_forwarding']['http_test']['avg_latency_ms'], b['proxy_forwarding']['http_test']['avg_latency_ms']),
         ('上游 Mock 代理命中次数', a['proxy_forwarding']['upstream_proxy_hits'], b['proxy_forwarding']['upstream_proxy_hits']),
-        ('连接态内存 TOTAL PSS (MB)', a['connected_resources']['mem'].get('total_pss_mb'), b['connected_resources']['mem'].get('total_pss_mb')),
-        ('连接态内存 TOTAL RSS (MB)', a['connected_resources']['mem'].get('total_rss_mb'), b['connected_resources']['mem'].get('total_rss_mb')),
-        ('连接态 CPU 均值 (%)', a['connected_resources']['cpu_avg_percent'], b['connected_resources']['cpu_avg_percent']),
+        ('刚连接内存 TOTAL PSS (MB)', a['connected_resources']['mem'].get('total_pss_mb'), b['connected_resources']['mem'].get('total_pss_mb')),
+        ('刚连接 CPU 均值 (%)', a['connected_resources']['cpu']['avg_percent'], b['connected_resources']['cpu']['avg_percent']),
+        ('稳态 30s 内存 TOTAL PSS (MB)', a['connected_resources']['steady_30s_mem'].get('total_pss_mb'), b['connected_resources']['steady_30s_mem'].get('total_pss_mb')),
+        ('稳态 30s 内存 TOTAL RSS (MB)', a['connected_resources']['steady_30s_mem'].get('total_rss_mb'), b['connected_resources']['steady_30s_mem'].get('total_rss_mb')),
+        ('稳态 30s CPU 均值 (%)', a['connected_resources']['steady_30s_cpu']['avg_percent'], b['connected_resources']['steady_30s_cpu']['avg_percent']),
+        ('稳态 30s CPU 采样序列', a['connected_resources']['steady_30s_cpu']['samples'], b['connected_resources']['steady_30s_cpu']['samples']),
         ('停止后 tun0 已清理', not a['vpn_stop']['tun0_still_up'], not b['vpn_stop']['tun0_still_up']),
         ('FATAL / ANR 次数', a['fatal_or_anr'], b['fatal_or_anr']),
     ]
