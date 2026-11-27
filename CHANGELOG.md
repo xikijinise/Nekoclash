@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.9.4 (2026-11-27)
+
+**Performance**
+
+- **dashboard** Isolate country badge spinner and add traffic repaint tests (7d29278)
+- **dashboard** Isolate runtime and traffic repaints and skip idle line chart draws (0d180f1)
+
 ## v0.9.3 (2026-11-23)
 
 **Features**

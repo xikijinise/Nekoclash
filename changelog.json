@@ -2,6 +2,29 @@
   "schemaVersion": 2,
   "versions": [
     {
+      "version": "0.9.4",
+      "tag": "v0.9.4",
+      "date": "2026-11-27",
+      "prerelease": false,
+      "groups": [
+        {
+          "type": "perf",
+          "entries": [
+            {
+              "id": "7d29278",
+              "scope": "dashboard",
+              "text": "Isolate country badge spinner and add traffic repaint tests"
+            },
+            {
+              "id": "0d180f1",
+              "scope": "dashboard",
+              "text": "Isolate runtime and traffic repaints and skip idle line chart draws"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "version": "0.9.3",
       "tag": "v0.9.3",
       "date": "2026-11-23",
