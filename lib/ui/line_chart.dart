@@ -101,8 +101,22 @@ class _Series {
   final List<double> heights;
 
   _Series append(List<double> samples) {
-    final next = [...values, ...samples];
-    return _Series._(next.sublist(next.length - values.length));
+    final count = samples.length;
+    if (count == 0) return this;
+    final length = values.length;
+    final next = count >= length
+        ? samples.sublist(count - length)
+        : [...values.sublist(count), ...samples];
+    if (_sameValues(values, next)) return this;
+    return _Series._(next);
+  }
+
+  static bool _sameValues(List<double> a, List<double> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   static List<double> _blur(List<double> values) {
@@ -164,9 +178,12 @@ class _LineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final heights = series.heights;
+    if (baselineRatio >= 1 && heights.every((h) => h <= 0)) {
+      return;
+    }
     final step = size.width / (capacity - 1);
     final baseline = size.height * baselineRatio;
-    final heights = series.heights;
     final slopes = _Series.slopesOf(heights);
     final firstX = size.width - (heights.length - 1) * step;
 
