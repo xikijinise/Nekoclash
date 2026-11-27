@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  benchmark:
-    name: ${{ matrix.app_name }} (Pixel 6 API 34)
+  connect-test:
+    name: ${{ matrix.app_name }} Connection Test (Pixel 6 API 34)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -41,7 +41,7 @@ jobs:
           mv /tmp/apks/*.apk /tmp/apks/app.apk
           ls -lh /tmp/apks/app.apk
 
-      - name: Run benchmark on Android Emulator
+      - name: Run zero-leak connection comparison on Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -50,19 +50,19 @@ jobs:
           profile: pixel_6
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
-          script: python3 .github/scripts/android_compare.py --app-name ${{ matrix.app_name }} --apk /tmp/apks/app.apk --package ${{ matrix.package }} --out-dir compare-results
+          script: python3 .github/scripts/android_connect_compare.py --app-name ${{ matrix.app_name }} --apk /tmp/apks/app.apk --package ${{ matrix.package }} --out-dir connect-results
 
       - name: Upload app results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: compare-${{ matrix.app_name }}
-          path: compare-results
+          name: connect-${{ matrix.app_name }}
+          path: connect-results
           if-no-files-found: ignore
 
   report:
-    name: Merge Comparison Report
-    needs: [benchmark]
+    name: Merge Connection Report
+    needs: [connect-test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -71,22 +71,22 @@ jobs:
       - name: Download NekoClash results
         uses: actions/download-artifact@v4
         with:
-          name: compare-NekoClash
+          name: connect-NekoClash
           path: merged
 
       - name: Download FlClash results
         uses: actions/download-artifact@v4
         with:
-          name: compare-FlClash
+          name: connect-FlClash
           path: merged
 
       - name: Generate side-by-side summary
         run: |
-          python3 .github/scripts/android_compare.py --merge merged/NekoClash.json merged/FlClash.json --out-dir merged
-          cat merged/summary.md >> "$GITHUB_STEP_SUMMARY"
+          python3 .github/scripts/android_connect_compare.py --merge merged/NekoClash.json merged/FlClash.json --out-dir merged
+          cat merged/connect_summary.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload merged comparison
+      - name: Upload merged results
         uses: actions/upload-artifact@v4
         with:
-          name: android-compare-results
+          name: android-connect-results
           path: merged
