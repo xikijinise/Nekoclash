@@ -335,12 +335,14 @@ class _ExitRow extends StatelessWidget {
     return Row(
       spacing: 12,
       children: [
-        _CountryBadge(
-          countryCode: info?.countryCode,
-          size: metrics.badgeSize,
-          active: active,
-          checking: checking,
-          onRefresh: onRefresh,
+        RepaintBoundary(
+          child: _CountryBadge(
+            countryCode: info?.countryCode,
+            size: metrics.badgeSize,
+            active: active,
+            checking: checking,
+            onRefresh: onRefresh,
+          ),
         ),
         Expanded(
           child: Column(
