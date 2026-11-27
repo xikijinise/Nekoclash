@@ -75,14 +75,14 @@ class _Figure extends StatelessWidget {
 
 /// The zero line is the chart's bottom: a card lets the chart bleed past its
 /// edge so idle traffic, or none sampled yet, leaves no line.
-class _SpeedChart extends StatelessWidget {
-  const _SpeedChart({required this.direction, required this.traffics});
+class _SpeedChart extends ConsumerWidget {
+  const _SpeedChart({required this.direction});
 
   final TrafficDirection direction;
-  final FixedList<Traffic> traffics;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final traffics = ref.watch(trafficsProvider);
     return LineChart(
       values: [
         for (final traffic in traffics.list) direction.of(traffic).toDouble(),
@@ -96,29 +96,97 @@ class _SpeedChart extends StatelessWidget {
   }
 }
 
-/// The upload or the download on its own desktop card.
-class SpeedCard extends ConsumerWidget {
-  const SpeedCard({super.key, required this.direction});
+class _SpeedFigure extends ConsumerWidget {
+  const _SpeedFigure({
+    required this.direction,
+    required this.style,
+    required this.unitStyle,
+  });
+
+  final TrafficDirection direction;
+  final AppTextStyle style;
+  final AppTextStyle unitStyle;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(
+      trafficsProvider.select(
+        (state) => direction.of(state.list.safeLast(const Traffic())),
+      ),
+    );
+    final show = current.traffic;
+    return RepaintBoundary(
+      child: _Figure(
+        show: show,
+        unit: _speedUnit(show),
+        style: style,
+        unitStyle: unitStyle,
+      ),
+    );
+  }
+}
+
+class _TotalTrafficLabel extends ConsumerWidget {
+  const _TotalTrafficLabel({required this.direction, this.overflow});
+
+  final TrafficDirection direction;
+  final TextOverflow? overflow;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final total = ref.watch(
+      totalTrafficProvider.select((state) => direction.of(state)),
+    );
+    return RepaintBoundary(
+      child: Text(
+        context.appLocalizations.trafficTotal(dashboardTraffic(total)),
+        maxLines: 1,
+        overflow: overflow,
+        style: DashboardText.label(context),
+      ),
+    );
+  }
+}
+
+class _PeakTrafficLabel extends ConsumerWidget {
+  const _PeakTrafficLabel({required this.direction});
 
   final TrafficDirection direction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final peak = ref.watch(
+      trafficsProvider.select(
+        (state) => state.list.fold<num>(
+          0,
+          (peak, traffic) => math.max(peak, direction.of(traffic)),
+        ),
+      ),
+    );
+    return RepaintBoundary(
+      child: Text(
+        context.appLocalizations.trafficPeak('${dashboardTraffic(peak)}/s'),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.end,
+        style: DashboardText.label(context),
+      ),
+    );
+  }
+}
+
+/// The upload or the download on its own desktop card.
+class SpeedCard extends StatelessWidget {
+  const SpeedCard({super.key, required this.direction});
+
+  final TrafficDirection direction;
+
+  @override
+  Widget build(BuildContext context) {
     final density = DashboardDensityScope.of(context);
     final compact = density.isCompact;
     final scale = DashboardDensityScope.scaleOf(context);
     final padding = dashboardCardPadding(density);
-    final appLocalizations = context.appLocalizations;
-    final traffics = ref.watch(trafficsProvider);
-    final total = ref.watch(
-      totalTrafficProvider.select((state) => direction.of(state)),
-    );
-    final current = direction.of(traffics.list.safeLast(const Traffic()));
-    final peak = traffics.list.fold<num>(
-      0,
-      (peak, traffic) => math.max(peak, direction.of(traffic)),
-    );
-    final speed = current.traffic;
     return DashboardCard(
       padding: EdgeInsets.zero,
       semanticLabel: direction.labelOf(context),
@@ -130,9 +198,7 @@ class SpeedCard extends ConsumerWidget {
             right: -_chartBleed,
             bottom: -_chartBleed,
             height: compact ? 62 : 88,
-            child: RepaintBoundary(
-              child: _SpeedChart(direction: direction, traffics: traffics),
-            ),
+            child: RepaintBoundary(child: _SpeedChart(direction: direction)),
           ),
           Padding(
             padding: padding,
@@ -154,35 +220,20 @@ class SpeedCard extends ConsumerWidget {
                         maxLines: 1,
                         style: DashboardText.cardTitle(context),
                       ),
-                      Expanded(
-                        child: Text(
-                          appLocalizations.trafficPeak(
-                            '${dashboardTraffic(peak)}/s',
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.end,
-                          style: DashboardText.label(context),
-                        ),
-                      ),
+                      Expanded(child: _PeakTrafficLabel(direction: direction)),
                     ],
                   ),
                 ),
                 SizedBox(height: compact ? 6 : 10),
-                _Figure(
-                  show: speed,
-                  unit: _speedUnit(speed),
+                _SpeedFigure(
+                  direction: direction,
                   style: compact
                       ? AppTextStyle.largeTitle
                       : AppTextStyle.display,
                   unitStyle: AppTextStyle.subheadline,
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  appLocalizations.trafficTotal(dashboardTraffic(total)),
-                  maxLines: 1,
-                  style: DashboardText.label(context),
-                ),
+                _TotalTrafficLabel(direction: direction),
               ],
             ),
           ),
@@ -193,14 +244,11 @@ class SpeedCard extends ConsumerWidget {
 }
 
 /// The phone's single card: both directions side by side.
-class NetworkSpeedCard extends ConsumerWidget {
+class NetworkSpeedCard extends StatelessWidget {
   const NetworkSpeedCard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final traffics = ref.watch(trafficsProvider);
-    final total = ref.watch(totalTrafficProvider);
-    final latest = traffics.list.safeLast(const Traffic());
+  Widget build(BuildContext context) {
     return DashboardCard(
       semanticLabel: context.appLocalizations.networkSpeed,
       child: Column(
@@ -214,14 +262,7 @@ class NetworkSpeedCard extends ConsumerWidget {
             spacing: 10,
             children: [
               for (final direction in TrafficDirection.values)
-                Expanded(
-                  child: _SpeedTile(
-                    direction: direction,
-                    speed: direction.of(latest),
-                    total: direction.of(total),
-                    traffics: traffics,
-                  ),
-                ),
+                Expanded(child: _SpeedTile(direction: direction)),
             ],
           ),
         ],
@@ -233,17 +274,9 @@ class NetworkSpeedCard extends ConsumerWidget {
 /// Keeps one shape at every width: the chart takes the height the tile's
 /// aspect ratio leaves under the text, down to [_minChartHeight].
 class _SpeedTile extends StatelessWidget {
-  const _SpeedTile({
-    required this.direction,
-    required this.speed,
-    required this.total,
-    required this.traffics,
-  });
+  const _SpeedTile({required this.direction});
 
   final TrafficDirection direction;
-  final num speed;
-  final num total;
-  final FixedList<Traffic> traffics;
 
   static const _aspectRatio = 1.06;
   static const _padding = EdgeInsets.fromLTRB(16, 14, 16, 0);
@@ -255,7 +288,6 @@ class _SpeedTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = direction.glyphColorOf(context);
-    final show = speed.traffic;
     final scale = DashboardDensityScope.scaleOf(context);
     final textHeight =
         _padding.top +
@@ -284,7 +316,7 @@ class _SpeedTile extends StatelessWidget {
                 bottom: -_bleed,
                 height: chartHeight,
                 child: RepaintBoundary(
-                  child: _SpeedChart(direction: direction, traffics: traffics),
+                  child: _SpeedChart(direction: direction),
                 ),
               ),
               Padding(
@@ -313,19 +345,14 @@ class _SpeedTile extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: _titleGap),
-                    _Figure(
-                      show: show,
-                      unit: _speedUnit(show),
+                    _SpeedFigure(
+                      direction: direction,
                       style: AppTextStyle.title1,
                       unitStyle: AppTextStyle.footnote,
                     ),
-                    Text(
-                      context.appLocalizations.trafficTotal(
-                        dashboardTraffic(total),
-                      ),
-                      maxLines: 1,
+                    _TotalTrafficLabel(
+                      direction: direction,
                       overflow: TextOverflow.ellipsis,
-                      style: DashboardText.label(context),
                     ),
                   ],
                 ),

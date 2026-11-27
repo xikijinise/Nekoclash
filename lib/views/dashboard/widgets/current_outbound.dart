@@ -186,11 +186,13 @@ class _CurrentOutboundCardState extends ConsumerState<CurrentOutboundCard>
                 SizedBox(
                   width: metrics.buttonSlot,
                   child: Center(
-                    child: _StartToggle(
-                      size: metrics.buttonSize,
-                      enabled: hasProfile,
-                      running: isStart,
-                      suspended: suspended,
+                    child: RepaintBoundary(
+                      child: _StartToggle(
+                        size: metrics.buttonSize,
+                        enabled: hasProfile,
+                        running: isStart,
+                        suspended: suspended,
+                      ),
                     ),
                   ),
                 ),
@@ -676,7 +678,9 @@ class _RunTimeValue extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return _CellText(getTimeText(ref.watch(runTimeProvider)));
+    return RepaintBoundary(
+      child: _CellText(getTimeText(ref.watch(runTimeProvider))),
+    );
   }
 }
 
