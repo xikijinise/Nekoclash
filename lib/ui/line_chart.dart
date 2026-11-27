@@ -178,12 +178,9 @@ class _LineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final heights = series.heights;
-    if (baselineRatio >= 1 && heights.every((h) => h <= 0)) {
-      return;
-    }
     final step = size.width / (capacity - 1);
     final baseline = size.height * baselineRatio;
+    final heights = series.heights;
     final slopes = _Series.slopesOf(heights);
     final firstX = size.width - (heights.length - 1) * step;
 
