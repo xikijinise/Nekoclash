@@ -40,11 +40,7 @@ jobs:
           profile: pixel_6
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
-          script: |
-            python3 .github/scripts/android_compare.py \
-              --neko-apk /tmp/apks/neko.apk \
-              --flclash-apk /tmp/apks/flclash.apk \
-              --out-dir compare-results
+          script: python3 .github/scripts/android_compare.py --neko-apk /tmp/apks/neko.apk --flclash-apk /tmp/apks/flclash.apk --out-dir compare-results
 
       - name: Publish step summary
         if: always()
